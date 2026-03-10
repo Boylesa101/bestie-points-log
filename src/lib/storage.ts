@@ -1,20 +1,30 @@
 import {
+  DEFAULT_METADATA,
   DEFAULT_PRESETS,
   DEFAULT_PROFILE,
   DEFAULT_REWARDS,
   DEFAULT_SETTINGS,
   DEFAULT_TOTAL_POINTS,
   sanitizeHistory,
+  sanitizeMetadata,
   sanitizePresets,
   sanitizeProfile,
   sanitizeRewards,
   sanitizeSettings,
   sanitizeTotalPoints,
 } from './defaults'
-import type { AppSettings, HistoryEntry, Presets, Profile, Reward } from '../types/app'
+import type {
+  AppMetadata,
+  AppSettings,
+  HistoryEntry,
+  Presets,
+  Profile,
+  Reward,
+} from '../types/app'
 
 const STORAGE_KEYS = {
   history: 'bestie-points-log/history',
+  metadata: 'bestie-points-log/metadata',
   presets: 'bestie-points-log/presets',
   profile: 'bestie-points-log/profile',
   rewards: 'bestie-points-log/rewards',
@@ -107,6 +117,12 @@ export const readRewards = () =>
 
 export const writeRewards = (rewards: Reward[]) =>
   writeValue(STORAGE_KEYS.rewards, sanitizeRewards(rewards))
+
+export const readMetadata = () =>
+  readValue(STORAGE_KEYS.metadata, DEFAULT_METADATA, sanitizeMetadata)
+
+export const writeMetadata = (metadata: AppMetadata) =>
+  writeValue(STORAGE_KEYS.metadata, sanitizeMetadata(metadata))
 
 export const readSettings = () =>
   readValue(STORAGE_KEYS.settings, DEFAULT_SETTINGS, sanitizeSettings)

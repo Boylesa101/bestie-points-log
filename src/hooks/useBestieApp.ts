@@ -1,18 +1,22 @@
 import { useRef, useState } from 'react'
 import {
+  DEFAULT_METADATA,
   createId,
+  sanitizeMetadata,
   sanitizePresets,
   sanitizeProfile,
   sanitizeRewards,
 } from '../lib/defaults'
 import {
   readHistory,
+  readMetadata,
   readPresets,
   readProfile,
   readRewards,
   readSettings,
   readTotalPoints,
   writeHistory,
+  writeMetadata,
   writePresets,
   writeProfile,
   writeRewards,
@@ -23,6 +27,7 @@ import type { PointsActionInput, Presets, Profile, Reward } from '../types/app'
 
 interface AppState {
   history: ReturnType<typeof readHistory>
+  metadata: ReturnType<typeof readMetadata>
   presets: Presets
   profile: Profile
   rewards: Reward[]
@@ -32,6 +37,7 @@ interface AppState {
 
 const loadInitialState = (): AppState => ({
   history: readHistory(),
+  metadata: readMetadata(),
   presets: readPresets(),
   profile: readProfile(),
   rewards: readRewards(),
@@ -50,6 +56,7 @@ export const useBestieApp = () => {
       writeTotalPoints(nextState.totalPoints),
       writePresets(nextState.presets),
       writeHistory(nextState.history),
+      writeMetadata(nextState.metadata),
       writeRewards(nextState.rewards),
       writeSettings(nextState.settings),
     ]
@@ -117,6 +124,10 @@ export const useBestieApp = () => {
     completeIntro: () =>
       commit((currentState) => ({
         ...currentState,
+        metadata: {
+          ...currentState.metadata,
+          schemaVersion: DEFAULT_METADATA.schemaVersion,
+        },
         settings: {
           ...currentState.settings,
           hasSeenIntro: true,
@@ -125,6 +136,10 @@ export const useBestieApp = () => {
     completeSetup: (nextProfile: Profile) =>
       commit((currentState) => ({
         ...currentState,
+        metadata: {
+          ...currentState.metadata,
+          schemaVersion: DEFAULT_METADATA.schemaVersion,
+        },
         profile: sanitizeProfile(nextProfile),
         settings: {
           ...currentState.settings,
@@ -133,6 +148,7 @@ export const useBestieApp = () => {
         },
       })),
     history: appState.history,
+    metadata: appState.metadata,
     presets: appState.presets,
     profile: appState.profile,
     resetPoints,
@@ -140,16 +156,19 @@ export const useBestieApp = () => {
     savePresets: (nextPresets: Presets) =>
       commit((currentState) => ({
         ...currentState,
+        metadata: sanitizeMetadata(currentState.metadata),
         presets: sanitizePresets(nextPresets),
       })),
     saveProfile: (nextProfile: Profile) =>
       commit((currentState) => ({
         ...currentState,
+        metadata: sanitizeMetadata(currentState.metadata),
         profile: sanitizeProfile(nextProfile),
       })),
     saveRewards: (nextRewards: Reward[]) =>
       commit((currentState) => ({
         ...currentState,
+        metadata: sanitizeMetadata(currentState.metadata),
         rewards: sanitizeRewards(nextRewards),
       })),
     settings: appState.settings,

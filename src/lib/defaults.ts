@@ -1,12 +1,17 @@
 import type {
+  AppMetadata,
   AppSettings,
   HistoryEntry,
+  ParentLockSettings,
   PointActionType,
   PresetAction,
+  PresetSource,
   Presets,
   Profile,
   Reward,
 } from '../types/app'
+
+export const STORAGE_SCHEMA_VERSION = 2
 
 export const DEFAULT_PROFILE: Profile = {
   childName: 'Henry',
@@ -17,43 +22,64 @@ export const DEFAULT_TOTAL_POINTS = 0
 
 export const DEFAULT_PRESETS: Presets = {
   add: [
-    { id: 'preset-add-super-good', label: 'Been super good', points: 50 },
-    { id: 'preset-add-dinner', label: 'Ate all dinner', points: 50 },
-    { id: 'preset-add-toys', label: 'Tidied toys', points: 50 },
-    { id: 'preset-add-teeth', label: 'Brushed teeth', points: 50 },
-    { id: 'preset-add-hands', label: 'Washed hands', points: 50 },
+    createDefaultPreset('preset-add-super-good', 'Been super good', 50, 0),
+    createDefaultPreset('preset-add-dinner', 'Ate all dinner', 50, 1),
+    createDefaultPreset('preset-add-toys', 'Tidied toys', 50, 2),
+    createDefaultPreset('preset-add-teeth', 'Brushed teeth', 50, 3),
+    createDefaultPreset('preset-add-hands', 'Washed hands', 50, 4),
   ],
   remove: [
-    { id: 'preset-remove-bed', label: 'Wee-wee in bed', points: 50 },
-    { id: 'preset-remove-tantrum', label: 'Tantrum', points: 50 },
-    { id: 'preset-remove-lying', label: 'Lying', points: 50 },
+    createDefaultPreset('preset-remove-bed', 'Wee-wee in bed', 50, 0),
+    createDefaultPreset('preset-remove-tantrum', 'Tantrum', 50, 1),
+    createDefaultPreset('preset-remove-lying', 'Lying', 50, 2),
   ],
 }
 
 export const DEFAULT_REWARDS: Reward[] = [
   {
+    claimedAt: null,
     id: 'reward-sticker',
+    isClaimed: false,
     title: 'Sticker',
     milestone: 500,
     description: 'Pick a shiny sticker for the chart.',
   },
   {
+    claimedAt: null,
     id: 'reward-treat',
+    isClaimed: false,
     title: 'Treat',
     milestone: 1000,
     description: 'Choose a little snack or treat.',
   },
   {
+    claimedAt: null,
     id: 'reward-adventure',
+    isClaimed: false,
     title: 'Park adventure',
     milestone: 1500,
     description: 'A special play trip to the park.',
   },
 ]
 
+export const DEFAULT_PARENT_LOCK: ParentLockSettings = {
+  enabled: false,
+  isLocked: false,
+  pin: null,
+}
+
 export const DEFAULT_SETTINGS: AppSettings = {
   hasCompletedSetup: false,
   hasSeenIntro: false,
+  parentLock: DEFAULT_PARENT_LOCK,
+  soundEnabled: true,
+}
+
+export const DEFAULT_METADATA: AppMetadata = {
+  lastExportedAt: null,
+  lastImportedAt: null,
+  lastImportedSchemaVersion: null,
+  schemaVersion: STORAGE_SCHEMA_VERSION,
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -84,6 +110,34 @@ const normalizePositiveInt = (value: unknown, fallback = 0) => {
   return Math.max(0, Math.round(numericValue))
 }
 
+const normalizeBoolean = (value: unknown, fallback = false) =>
+  typeof value === 'boolean' ? value : fallback
+
+const normalizeTimestamp = (value: unknown) =>
+  typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : null
+
+const sanitizeParentLock = (value: unknown): ParentLockSettings => {
+  if (!isRecord(value)) {
+    return DEFAULT_PARENT_LOCK
+  }
+
+  const pin =
+    typeof value.pin === 'string' && /^\d{4,8}$/.test(value.pin)
+      ? value.pin
+      : null
+  const enabled = normalizeBoolean(value.enabled, DEFAULT_PARENT_LOCK.enabled) && pin !== null
+
+  return {
+    enabled,
+    isLocked: enabled && normalizeBoolean(value.isLocked),
+    pin,
+  }
+}
+
+const DEFAULT_PRESET_IDS = new Set(
+  [...DEFAULT_PRESETS.add, ...DEFAULT_PRESETS.remove].map((preset) => preset.id),
+)
+
 const sanitizePresetList = (value: unknown): PresetAction[] => {
   if (!Array.isArray(value)) {
     return []
@@ -91,24 +145,29 @@ const sanitizePresetList = (value: unknown): PresetAction[] => {
 
   return value
     .filter(isRecord)
-    .map((preset) => {
+    .map((preset, index) => {
       const label = normalizeText(preset.label)
       const points = normalizePositiveInt(preset.points)
+      const id =
+        typeof preset.id === 'string' && preset.id.trim()
+          ? preset.id
+          : createId()
 
       if (!label || points < 1) {
         return null
       }
 
       return {
-        id:
-          typeof preset.id === 'string' && preset.id.trim()
-            ? preset.id
-            : createId(),
+        id,
         label,
         points,
+        sortOrder: normalizePositiveInt(preset.sortOrder, index),
+        source: sanitizePresetSource(preset.source, id),
+        visibleOnHome: normalizeBoolean(preset.visibleOnHome, true),
       }
     })
     .filter((preset): preset is PresetAction => preset !== null)
+    .sort((left, right) => left.sortOrder - right.sortOrder)
 }
 
 export const sanitizeProfile = (value: unknown): Profile => {
@@ -189,16 +248,20 @@ export const sanitizeRewards = (value: unknown): Reward[] => {
       const title = normalizeText(reward.title)
       const milestone = normalizePositiveInt(reward.milestone)
       const description = normalizeText(reward.description)
+      const claimedAt = normalizeTimestamp(reward.claimedAt)
+      const isClaimed = normalizeBoolean(reward.isClaimed) || claimedAt !== null
 
       if (!title || milestone < 1) {
         return null
       }
 
       return {
+        claimedAt,
         id:
           typeof reward.id === 'string' && reward.id.trim()
             ? reward.id
             : createId(),
+        isClaimed,
         title,
         milestone,
         description,
@@ -216,7 +279,50 @@ export const sanitizeSettings = (value: unknown): AppSettings => {
   return {
     hasCompletedSetup: Boolean(value.hasCompletedSetup),
     hasSeenIntro: Boolean(value.hasSeenIntro),
+    parentLock: sanitizeParentLock(value.parentLock),
+    soundEnabled: normalizeBoolean(value.soundEnabled, DEFAULT_SETTINGS.soundEnabled),
   }
+}
+
+export const sanitizeMetadata = (value: unknown): AppMetadata => {
+  if (!isRecord(value)) {
+    return DEFAULT_METADATA
+  }
+
+  return {
+    lastExportedAt: normalizeTimestamp(value.lastExportedAt),
+    lastImportedAt: normalizeTimestamp(value.lastImportedAt),
+    lastImportedSchemaVersion:
+      value.lastImportedSchemaVersion === null ||
+      value.lastImportedSchemaVersion === undefined
+        ? null
+        : normalizePositiveInt(value.lastImportedSchemaVersion),
+    schemaVersion: normalizePositiveInt(value.schemaVersion, STORAGE_SCHEMA_VERSION) || STORAGE_SCHEMA_VERSION,
+  }
+}
+
+function createDefaultPreset(
+  id: string,
+  label: string,
+  points: number,
+  sortOrder: number,
+): PresetAction {
+  return {
+  id,
+  label,
+  points,
+  sortOrder,
+  source: 'default',
+  visibleOnHome: true,
+  }
+}
+
+const sanitizePresetSource = (value: unknown, id: string): PresetSource => {
+  if (value === 'custom' || value === 'default') {
+    return value
+  }
+
+  return DEFAULT_PRESET_IDS.has(id) ? 'default' : 'custom'
 }
 
 export const createId = () => {

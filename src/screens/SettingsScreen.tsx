@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { DEFAULT_PROFILE, sanitizePresets, sanitizeProfile, sanitizeRewards } from '../lib/defaults'
 import { prepareImageDataUrl } from '../lib/images'
-import type { Presets, Profile, Reward } from '../types/app'
+import type { PresetAction, Presets, Profile, Reward } from '../types/app'
 
 interface SettingsPayload {
   presets: Presets
@@ -82,11 +82,7 @@ export const SettingsScreen = ({
 
     setter((currentPresets) => [
       ...currentPresets,
-      {
-        id: `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        label: group === 'add' ? 'New win' : 'New lose',
-        points: 50,
-      },
+      createPresetDraft(group, currentPresets.length),
     ])
   }
 
@@ -120,12 +116,7 @@ export const SettingsScreen = ({
   const addReward = () => {
     setRewardDrafts((currentRewards) => [
       ...currentRewards,
-      {
-        description: 'A lovely reward to celebrate progress.',
-        id: `reward-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        milestone: 2000,
-        title: 'New reward',
-      },
+      createRewardDraft(),
     ])
   }
 
@@ -428,3 +419,24 @@ export const SettingsScreen = ({
     </main>
   )
 }
+
+const createPresetDraft = (
+  group: 'add' | 'remove',
+  index: number,
+): PresetAction => ({
+  id: `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  label: group === 'add' ? 'New win' : 'New lose',
+  points: 50,
+  sortOrder: index,
+  source: 'custom',
+  visibleOnHome: true,
+})
+
+const createRewardDraft = (): Reward => ({
+  claimedAt: null,
+  description: 'A lovely reward to celebrate progress.',
+  id: `reward-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  isClaimed: false,
+  milestone: 2000,
+  title: 'New reward',
+})
