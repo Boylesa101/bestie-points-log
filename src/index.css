@@ -379,6 +379,7 @@ img {
 }
 
 .section-heading__tag {
+  max-width: 8.5rem;
   font-size: 0.64rem;
   font-weight: 900;
   letter-spacing: 0.2em;
@@ -563,6 +564,13 @@ img {
   border: 1px solid #e2e8f0;
   border-radius: 999px;
   color: #7c3aed;
+}
+
+.inline-button--tiny,
+.danger-button--tiny {
+  min-height: 36px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
 }
 
 .soft-button--violet {
@@ -771,6 +779,12 @@ img {
   background: #fff;
 }
 
+.text-input--icon {
+  text-align: center;
+  font-size: 1.3rem;
+  padding-inline: 10px;
+}
+
 .textarea-input {
   min-height: 92px;
   resize: vertical;
@@ -801,6 +815,56 @@ img {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 98px;
   gap: 10px;
+}
+
+.editor-row__fields--preset {
+  grid-template-columns: 112px 88px;
+}
+
+.editor-row--preset {
+  gap: 12px;
+}
+
+.preset-editor__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.preset-editor__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  font-size: 1.35rem;
+}
+
+.preset-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #475569;
+}
+
+.toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #8b5cf6;
 }
 
 .avatar-editor {

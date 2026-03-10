@@ -1,4 +1,4 @@
-import type { PointActionType } from '../types/app'
+import type { PointActionType, PresetAction } from '../types/app'
 
 const ICON_RULES: Array<[string, string]> = [
   ['super good', '🌟'],
@@ -27,3 +27,8 @@ export const getEntryIcon = (label: string, type: PointActionType) => {
 
   return type === 'add' ? '⭐' : '🌧️'
 }
+
+export const getPresetIcon = (
+  preset: Pick<PresetAction, 'icon' | 'label'>,
+  type: PointActionType,
+) => preset.icon || getEntryIcon(preset.label, type)

@@ -29,6 +29,15 @@ export const HomeScreen = ({
   totalPoints,
 }: HomeScreenProps) => {
   const nextReward = rewards.find((reward) => reward.milestone > totalPoints)
+  const visibleAddPresets = presets.add.filter((preset) => preset.visibleOnHome)
+  const visibleRemovePresets = presets.remove.filter((preset) => preset.visibleOnHome)
+  const displayedAddPresets = visibleAddPresets.slice(0, 6)
+  const displayedRemovePresets = visibleRemovePresets.slice(0, 4)
+  const hiddenAddCount = Math.max(visibleAddPresets.length - displayedAddPresets.length, 0)
+  const hiddenRemoveCount = Math.max(
+    visibleRemovePresets.length - displayedRemovePresets.length,
+    0,
+  )
 
   return (
     <main className="screen screen--home">
@@ -41,7 +50,10 @@ export const HomeScreen = ({
 
         <PresetGrid
           onSelect={onPresetTap}
-          presets={presets.add}
+          presets={displayedAddPresets}
+          summary={
+            hiddenAddCount > 0 ? `+${hiddenAddCount} more in settings` : 'Good jobs'
+          }
           title="Win points"
           tone="add"
         />
@@ -56,7 +68,10 @@ export const HomeScreen = ({
 
         <PresetGrid
           onSelect={onPresetTap}
-          presets={presets.remove}
+          presets={displayedRemovePresets}
+          summary={
+            hiddenRemoveCount > 0 ? `+${hiddenRemoveCount} more in settings` : 'Oopsies'
+          }
           title="Lose points"
           tone="remove"
         />

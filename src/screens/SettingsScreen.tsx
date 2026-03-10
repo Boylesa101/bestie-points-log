@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { DEFAULT_PROFILE, sanitizePresets, sanitizeProfile, sanitizeRewards } from '../lib/defaults'
+import { getPresetIcon } from '../lib/icons'
 import { prepareImageDataUrl } from '../lib/images'
 import type { PresetAction, Presets, Profile, Reward } from '../types/app'
 
@@ -57,8 +58,8 @@ export const SettingsScreen = ({
   const updatePreset = (
     group: 'add' | 'remove',
     id: string,
-    field: 'label' | 'points',
-    value: string,
+    field: 'icon' | 'label' | 'points' | 'visibleOnHome',
+    value: boolean | string,
   ) => {
     const setter = group === 'add' ? setAddPresets : setRemovePresets
 
@@ -69,8 +70,10 @@ export const SettingsScreen = ({
               ...preset,
               [field]:
                 field === 'points'
-                  ? Number.parseInt(value || '0', 10) || 0
-                  : value,
+                  ? Number.parseInt(String(value) || '0', 10) || 0
+                  : field === 'visibleOnHome'
+                    ? Boolean(value)
+                    : value,
             }
           : preset,
       ),
@@ -81,7 +84,7 @@ export const SettingsScreen = ({
     const setter = group === 'add' ? setAddPresets : setRemovePresets
 
     setter((currentPresets) => [
-      ...currentPresets,
+      ...reorderPresets(currentPresets),
       createPresetDraft(group, currentPresets.length),
     ])
   }
@@ -89,8 +92,36 @@ export const SettingsScreen = ({
   const removePreset = (group: 'add' | 'remove', id: string) => {
     const setter = group === 'add' ? setAddPresets : setRemovePresets
     setter((currentPresets) =>
-      currentPresets.filter((preset) => preset.id !== id),
+      reorderPresets(currentPresets.filter((preset) => preset.id !== id)),
     )
+  }
+
+  const movePreset = (
+    group: 'add' | 'remove',
+    id: string,
+    direction: 'down' | 'up',
+  ) => {
+    const setter = group === 'add' ? setAddPresets : setRemovePresets
+
+    setter((currentPresets) => {
+      const nextPresets = [...currentPresets]
+      const currentIndex = nextPresets.findIndex((preset) => preset.id === id)
+
+      if (currentIndex < 0) {
+        return currentPresets
+      }
+
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+
+      if (targetIndex < 0 || targetIndex >= nextPresets.length) {
+        return currentPresets
+      }
+
+      const [movedPreset] = nextPresets.splice(currentIndex, 1)
+      nextPresets.splice(targetIndex, 0, movedPreset)
+
+      return reorderPresets(nextPresets)
+    })
   }
 
   const updateReward = (
@@ -256,19 +287,45 @@ export const SettingsScreen = ({
 
           <div className="editor-list">
             {addPresets.map((preset) => (
-              <div className="editor-row" key={preset.id}>
+              <div className="editor-row editor-row--preset" key={preset.id}>
                 <div className="editor-row__top">
-                  <strong>{preset.label || 'Preset'}</strong>
-                  <button
-                    className="danger-button"
-                    onClick={() => removePreset('add', preset.id)}
-                    type="button"
-                  >
-                    Delete
-                  </button>
+                  <div className="preset-editor__title">
+                    <span className="preset-editor__icon">
+                      {getPresetIcon(preset, 'add')}
+                    </span>
+                    <div>
+                      <strong>{preset.label || 'Preset'}</strong>
+                      <p className="field__help">
+                        {preset.source === 'default' ? 'Default preset' : 'Custom preset'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="preset-editor__actions">
+                    <button
+                      className="inline-button inline-button--tiny"
+                      onClick={() => movePreset('add', preset.id, 'up')}
+                      type="button"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      className="inline-button inline-button--tiny"
+                      onClick={() => movePreset('add', preset.id, 'down')}
+                      type="button"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      className="danger-button danger-button--tiny"
+                      onClick={() => removePreset('add', preset.id)}
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
 
-                <div className="editor-row__fields">
+                <label className="field">
                   <input
                     className="text-input"
                     onChange={(event) =>
@@ -276,6 +333,9 @@ export const SettingsScreen = ({
                     }
                     value={preset.label}
                   />
+                </label>
+
+                <div className="editor-row__fields editor-row__fields--preset">
                   <input
                     className="number-input"
                     min="1"
@@ -285,7 +345,28 @@ export const SettingsScreen = ({
                     type="number"
                     value={preset.points}
                   />
+                  <input
+                    className="text-input text-input--icon"
+                    inputMode="text"
+                    maxLength={8}
+                    onChange={(event) =>
+                      updatePreset('add', preset.id, 'icon', event.target.value)
+                    }
+                    placeholder="⭐"
+                    value={preset.icon ?? ''}
+                  />
                 </div>
+
+                <label className="toggle-row">
+                  <input
+                    checked={preset.visibleOnHome}
+                    onChange={(event) =>
+                      updatePreset('add', preset.id, 'visibleOnHome', event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  <span>Show this preset on the home screen</span>
+                </label>
               </div>
             ))}
           </div>
@@ -301,19 +382,45 @@ export const SettingsScreen = ({
 
           <div className="editor-list">
             {removePresets.map((preset) => (
-              <div className="editor-row" key={preset.id}>
+              <div className="editor-row editor-row--preset" key={preset.id}>
                 <div className="editor-row__top">
-                  <strong>{preset.label || 'Preset'}</strong>
-                  <button
-                    className="danger-button"
-                    onClick={() => removePreset('remove', preset.id)}
-                    type="button"
-                  >
-                    Delete
-                  </button>
+                  <div className="preset-editor__title">
+                    <span className="preset-editor__icon">
+                      {getPresetIcon(preset, 'remove')}
+                    </span>
+                    <div>
+                      <strong>{preset.label || 'Preset'}</strong>
+                      <p className="field__help">
+                        {preset.source === 'default' ? 'Default preset' : 'Custom preset'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="preset-editor__actions">
+                    <button
+                      className="inline-button inline-button--tiny"
+                      onClick={() => movePreset('remove', preset.id, 'up')}
+                      type="button"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      className="inline-button inline-button--tiny"
+                      onClick={() => movePreset('remove', preset.id, 'down')}
+                      type="button"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      className="danger-button danger-button--tiny"
+                      onClick={() => removePreset('remove', preset.id)}
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
 
-                <div className="editor-row__fields">
+                <label className="field">
                   <input
                     className="text-input"
                     onChange={(event) =>
@@ -321,6 +428,9 @@ export const SettingsScreen = ({
                     }
                     value={preset.label}
                   />
+                </label>
+
+                <div className="editor-row__fields editor-row__fields--preset">
                   <input
                     className="number-input"
                     min="1"
@@ -330,7 +440,28 @@ export const SettingsScreen = ({
                     type="number"
                     value={preset.points}
                   />
+                  <input
+                    className="text-input text-input--icon"
+                    inputMode="text"
+                    maxLength={8}
+                    onChange={(event) =>
+                      updatePreset('remove', preset.id, 'icon', event.target.value)
+                    }
+                    placeholder="💧"
+                    value={preset.icon ?? ''}
+                  />
                 </div>
+
+                <label className="toggle-row">
+                  <input
+                    checked={preset.visibleOnHome}
+                    onChange={(event) =>
+                      updatePreset('remove', preset.id, 'visibleOnHome', event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  <span>Show this preset on the home screen</span>
+                </label>
               </div>
             ))}
           </div>
@@ -425,12 +556,19 @@ const createPresetDraft = (
   index: number,
 ): PresetAction => ({
   id: `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  icon: null,
   label: group === 'add' ? 'New win' : 'New lose',
   points: 50,
   sortOrder: index,
   source: 'custom',
   visibleOnHome: true,
 })
+
+const reorderPresets = (presets: PresetAction[]) =>
+  presets.map((preset, index) => ({
+    ...preset,
+    sortOrder: index,
+  }))
 
 const createRewardDraft = (): Reward => ({
   claimedAt: null,

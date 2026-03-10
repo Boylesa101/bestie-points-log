@@ -14,6 +14,7 @@ export interface Profile {
 
 export interface PresetAction {
   id: string
+  icon: string | null
   label: string
   points: number
   sortOrder: number

@@ -1,9 +1,10 @@
 import type { PointActionType, PresetAction } from '../types/app'
-import { getEntryIcon } from '../lib/icons'
+import { getPresetIcon } from '../lib/icons'
 
 interface PresetGridProps {
   onSelect: (label: string, points: number, type: PointActionType) => void
   presets: PresetAction[]
+  summary?: string
   title: string
   tone: PointActionType
 }
@@ -11,6 +12,7 @@ interface PresetGridProps {
 export const PresetGrid = ({
   onSelect,
   presets,
+  summary,
   title,
   tone,
 }: PresetGridProps) => (
@@ -21,7 +23,7 @@ export const PresetGrid = ({
         <h3>{title}</h3>
       </div>
       <div className={`section-heading__tag section-heading__tag--${tone}`}>
-        {tone === 'add' ? 'Good jobs' : 'Oopsies'}
+        {summary ?? (tone === 'add' ? 'Good jobs' : 'Oopsies')}
       </div>
     </div>
 
@@ -34,7 +36,7 @@ export const PresetGrid = ({
             onClick={() => onSelect(preset.label, preset.points, tone)}
             type="button"
           >
-            <span className="preset-button__icon">{getEntryIcon(preset.label, tone)}</span>
+            <span className="preset-button__icon">{getPresetIcon(preset, tone)}</span>
             <span className="preset-button__label">{preset.label}</span>
             <span className="preset-button__points">
               {tone === 'add' ? '+' : '-'}

@@ -22,16 +22,16 @@ export const DEFAULT_TOTAL_POINTS = 0
 
 export const DEFAULT_PRESETS: Presets = {
   add: [
-    createDefaultPreset('preset-add-super-good', 'Been super good', 50, 0),
-    createDefaultPreset('preset-add-dinner', 'Ate all dinner', 50, 1),
-    createDefaultPreset('preset-add-toys', 'Tidied toys', 50, 2),
-    createDefaultPreset('preset-add-teeth', 'Brushed teeth', 50, 3),
-    createDefaultPreset('preset-add-hands', 'Washed hands', 50, 4),
+    createDefaultPreset('preset-add-super-good', 'Been super good', '🌟', 50, 0),
+    createDefaultPreset('preset-add-dinner', 'Ate all dinner', '🍽️', 50, 1),
+    createDefaultPreset('preset-add-toys', 'Tidied toys', '🧸', 50, 2),
+    createDefaultPreset('preset-add-teeth', 'Brushed teeth', '🪥', 50, 3),
+    createDefaultPreset('preset-add-hands', 'Washed hands', '🫧', 50, 4),
   ],
   remove: [
-    createDefaultPreset('preset-remove-bed', 'Wee-wee in bed', 50, 0),
-    createDefaultPreset('preset-remove-tantrum', 'Tantrum', 50, 1),
-    createDefaultPreset('preset-remove-lying', 'Lying', 50, 2),
+    createDefaultPreset('preset-remove-bed', 'Wee-wee in bed', '💧', 50, 0),
+    createDefaultPreset('preset-remove-tantrum', 'Tantrum', '😤', 50, 1),
+    createDefaultPreset('preset-remove-lying', 'Lying', '🙈', 50, 2),
   ],
 }
 
@@ -99,6 +99,15 @@ const normalizePhoto = (value: unknown) =>
     ? value
     : null
 
+const normalizeIcon = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? trimmed.slice(0, 8) : null
+}
+
 const normalizePositiveInt = (value: unknown, fallback = 0) => {
   const numericValue =
     typeof value === 'number' ? value : Number.parseInt(String(value), 10)
@@ -159,6 +168,7 @@ const sanitizePresetList = (value: unknown): PresetAction[] => {
 
       return {
         id,
+        icon: normalizeIcon(preset.icon),
         label,
         points,
         sortOrder: normalizePositiveInt(preset.sortOrder, index),
@@ -304,13 +314,15 @@ export const sanitizeMetadata = (value: unknown): AppMetadata => {
 function createDefaultPreset(
   id: string,
   label: string,
+  icon: string,
   points: number,
   sortOrder: number,
 ): PresetAction {
   return {
-  id,
-  label,
-  points,
+    id,
+    icon,
+    label,
+    points,
   sortOrder,
   source: 'default',
   visibleOnHome: true,
