@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { ParentGateModal } from './components/ParentGateModal'
 import { PointsModal } from './components/PointsModal'
 import { SplashScreen } from './components/SplashScreen'
 import { useBestieApp } from './hooks/useBestieApp'
-import type { PointActionType, Presets, Profile, Reward } from './types/app'
+import { playPointSound } from './lib/sound'
+import type {
+  AppSettings,
+  PointActionType,
+  PointsActionInput,
+  Presets,
+  Profile,
+  Reward,
+} from './types/app'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { RewardsScreen } from './screens/RewardsScreen'
@@ -16,6 +25,7 @@ interface SettingsPayload {
   presets: Presets
   profile: Profile
   rewards: Reward[]
+  settings: AppSettings
 }
 
 interface ConfirmState {
@@ -24,6 +34,11 @@ interface ConfirmState {
   description: string
   tone?: 'danger' | 'primary'
   title: string
+}
+
+interface PointReactionState {
+  id: number
+  type: PointActionType
 }
 
 function App() {
@@ -36,6 +51,7 @@ function App() {
     profile,
     resetPoints,
     rewards,
+    saveAppSettings,
     savePresets,
     saveProfile,
     saveRewards,
@@ -48,6 +64,8 @@ function App() {
   const [showSplash, setShowSplash] = useState(true)
   const [isPointsModalOpen, setIsPointsModalOpen] = useState(false)
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
+  const [isParentGateOpen, setIsParentGateOpen] = useState(false)
+  const [pointReaction, setPointReaction] = useState<PointReactionState | null>(null)
 
   useEffect(() => {
     if (!settings.hasSeenIntro) {
@@ -75,18 +93,45 @@ function App() {
     points: number,
     type: PointActionType,
   ) => {
-    trackPoints({
+    handlePointsAction({
       amount: points,
       reason: label,
       type,
     })
   }
 
-  const handleSaveSettings = ({ presets, profile, rewards }: SettingsPayload) => {
+  const handleSaveSettings = ({ presets, profile, rewards, settings }: SettingsPayload) => {
     saveProfile(profile)
     savePresets(presets)
     saveRewards(rewards)
+    saveAppSettings(settings)
     setScreen('home')
+  }
+
+  const handlePointsAction = ({ amount, reason, type }: PointsActionInput) => {
+    trackPoints({ amount, reason, type })
+    void playPointSound(type, settings.soundEnabled)
+    const reactionId = Date.now()
+    setPointReaction({ id: reactionId, type })
+    window.setTimeout(() => {
+      setPointReaction((currentReaction) =>
+        currentReaction?.id === reactionId ? null : currentReaction,
+      )
+    }, 900)
+  }
+
+  const handleRequestOpenSettings = () => {
+    const shouldRequirePin =
+      settings.parentLock.enabled &&
+      settings.parentLock.isLocked &&
+      Boolean(settings.parentLock.pin)
+
+    if (shouldRequirePin) {
+      setIsParentGateOpen(true)
+      return
+    }
+
+    setScreen('settings')
   }
 
   const recentEntries = history.slice(0, 3)
@@ -115,7 +160,7 @@ function App() {
               onOpenHistory={() => setScreen('history')}
               onOpenPointsModal={() => setIsPointsModalOpen(true)}
               onOpenRewards={() => setScreen('rewards')}
-              onOpenSettings={() => setScreen('settings')}
+              onOpenSettings={handleRequestOpenSettings}
               onPresetTap={handlePresetTap}
               presets={presets}
               profile={profile}
@@ -141,7 +186,7 @@ function App() {
           {screen === 'rewards' ? (
             <RewardsScreen
               onBack={() => setScreen('home')}
-              onOpenSettings={() => setScreen('settings')}
+              onOpenSettings={handleRequestOpenSettings}
               rewards={rewards}
               totalPoints={totalPoints}
             />
@@ -183,6 +228,7 @@ function App() {
               presets={presets}
               profile={profile}
               rewards={rewards}
+              settings={settings}
             />
           ) : null}
 
@@ -190,8 +236,24 @@ function App() {
             <PointsModal
               onClose={() => setIsPointsModalOpen(false)}
               onSave={({ amount, reason, type }) => {
-                trackPoints({ amount, reason, type })
+                handlePointsAction({ amount, reason, type })
                 setIsPointsModalOpen(false)
+              }}
+            />
+          ) : null}
+
+          {isParentGateOpen ? (
+            <ParentGateModal
+              onClose={() => setIsParentGateOpen(false)}
+              onUnlock={(pin) => {
+                const isMatch = pin === settings.parentLock.pin
+
+                if (isMatch) {
+                  setIsParentGateOpen(false)
+                  setScreen('settings')
+                }
+
+                return isMatch
               }}
             />
           ) : null}
@@ -207,6 +269,20 @@ function App() {
             title={confirmState?.title ?? ''}
             tone={confirmState?.tone}
           />
+
+          {pointReaction ? (
+            <div
+              className={`point-reaction point-reaction--${pointReaction.type}`}
+              key={pointReaction.id}
+            >
+              <div className="point-reaction__icon">
+                {pointReaction.type === 'add' ? '⭐' : '☁️'}
+              </div>
+              <div className="point-reaction__text">
+                {pointReaction.type === 'add' ? 'Yay!' : 'Aww'}
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

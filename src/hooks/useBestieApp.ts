@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import {
   DEFAULT_METADATA,
   createId,
+  sanitizeSettings,
   sanitizeMetadata,
   sanitizePresets,
   sanitizeProfile,
@@ -23,7 +24,7 @@ import {
   writeSettings,
   writeTotalPoints,
 } from '../lib/storage'
-import type { PointsActionInput, Presets, Profile, Reward } from '../types/app'
+import type { AppSettings, PointsActionInput, Presets, Profile, Reward } from '../types/app'
 
 interface AppState {
   history: ReturnType<typeof readHistory>
@@ -164,6 +165,12 @@ export const useBestieApp = () => {
         ...currentState,
         metadata: sanitizeMetadata(currentState.metadata),
         profile: sanitizeProfile(nextProfile),
+      })),
+    saveAppSettings: (nextSettings: AppSettings) =>
+      commit((currentState) => ({
+        ...currentState,
+        metadata: sanitizeMetadata(currentState.metadata),
+        settings: sanitizeSettings(nextSettings),
       })),
     saveRewards: (nextRewards: Reward[]) =>
       commit((currentState) => ({

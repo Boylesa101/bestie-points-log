@@ -3,12 +3,13 @@ import type { ChangeEvent } from 'react'
 import { DEFAULT_PROFILE, sanitizePresets, sanitizeProfile, sanitizeRewards } from '../lib/defaults'
 import { getPresetIcon } from '../lib/icons'
 import { prepareImageDataUrl } from '../lib/images'
-import type { PresetAction, Presets, Profile, Reward } from '../types/app'
+import type { AppSettings, PresetAction, Presets, Profile, Reward } from '../types/app'
 
 interface SettingsPayload {
   presets: Presets
   profile: Profile
   rewards: Reward[]
+  settings: AppSettings
 }
 
 interface SettingsScreenProps {
@@ -20,6 +21,7 @@ interface SettingsScreenProps {
   presets: Presets
   profile: Profile
   rewards: Reward[]
+  settings: AppSettings
 }
 
 export const SettingsScreen = ({
@@ -31,12 +33,19 @@ export const SettingsScreen = ({
   presets,
   profile,
   rewards,
+  settings,
 }: SettingsScreenProps) => {
   const [childName, setChildName] = useState(profile.childName)
   const [photoDataUrl, setPhotoDataUrl] = useState(profile.photoDataUrl)
   const [addPresets, setAddPresets] = useState(presets.add)
   const [removePresets, setRemovePresets] = useState(presets.remove)
   const [rewardDrafts, setRewardDrafts] = useState(rewards)
+  const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled)
+  const [lockActive, setLockActive] = useState(settings.parentLock.isLocked)
+  const [pinDraft, setPinDraft] = useState('')
+  const [confirmPinDraft, setConfirmPinDraft] = useState('')
+  const [isChangingPin, setIsChangingPin] = useState(!settings.parentLock.pin)
+  const [shouldRemovePin, setShouldRemovePin] = useState(false)
   const [error, setError] = useState('')
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -51,9 +60,15 @@ export const SettingsScreen = ({
     setAddPresets(presets.add)
     setRemovePresets(presets.remove)
     setRewardDrafts(rewards)
+    setSoundEnabled(settings.soundEnabled)
+    setLockActive(settings.parentLock.isLocked)
+    setPinDraft('')
+    setConfirmPinDraft('')
+    setIsChangingPin(!settings.parentLock.pin)
+    setShouldRemovePin(false)
     setError('')
     setIsProcessingPhoto(false)
-  }, [isActive, presets, profile, rewards])
+  }, [isActive, presets, profile, rewards, settings])
 
   const updatePreset = (
     group: 'add' | 'remove',
@@ -188,16 +203,49 @@ export const SettingsScreen = ({
       remove: removePresets,
     })
     const nextRewards = sanitizeRewards(rewardDrafts)
+    const hasExistingPin = Boolean(settings.parentLock.pin)
+    const wantsNewPin = !shouldRemovePin && (isChangingPin || !hasExistingPin)
+    const hasDraftPin = pinDraft.trim().length > 0 || confirmPinDraft.trim().length > 0
+
+    if (wantsNewPin || hasDraftPin) {
+      if (!/^\d{4,8}$/.test(pinDraft.trim())) {
+        setError('Use a parent PIN with 4 to 8 digits.')
+        return
+      }
+
+      if (pinDraft.trim() !== confirmPinDraft.trim()) {
+        setError('The new PIN and confirm PIN must match.')
+        return
+      }
+    }
 
     if (!nextProfile.childName.trim()) {
       setError('Add a child name before saving.')
       return
     }
 
+    const nextPin =
+      shouldRemovePin
+        ? null
+        : wantsNewPin
+          ? pinDraft.trim()
+          : settings.parentLock.pin
+
+    const nextSettings: AppSettings = {
+      ...settings,
+      parentLock: {
+        enabled: Boolean(nextPin),
+        isLocked: nextPin ? lockActive : false,
+        pin: nextPin,
+      },
+      soundEnabled,
+    }
+
     onSave({
       presets: nextPresets,
       profile: nextProfile,
       rewards: nextRewards,
+      settings: nextSettings,
     })
   }
 
@@ -275,6 +323,117 @@ export const SettingsScreen = ({
             ref={fileInputRef}
             type="file"
           />
+        </section>
+
+        <section className="settings-card">
+          <div className="settings-card__header">
+            <h3>Parent lock & sounds</h3>
+            <div className="chip">🔐 Local only</div>
+          </div>
+
+          <label className="toggle-row toggle-row--card">
+            <input
+              checked={soundEnabled}
+              onChange={(event) => setSoundEnabled(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Play cheerful sounds for points</span>
+          </label>
+
+          <p className="field__help">
+            Sounds are soft, local, and safe to mute. If a browser blocks playback, the app keeps
+            working without errors.
+          </p>
+
+          {settings.parentLock.pin && !shouldRemovePin ? (
+            <>
+              <label className="toggle-row toggle-row--card">
+                <input
+                  checked={lockActive}
+                  onChange={(event) => setLockActive(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Require PIN before opening settings</span>
+              </label>
+
+              <div className="actions-row actions-row--stack">
+                <button
+                  className="inline-button"
+                  onClick={() => {
+                    setIsChangingPin((current) => !current)
+                    setPinDraft('')
+                    setConfirmPinDraft('')
+                    setShouldRemovePin(false)
+                    setError('')
+                  }}
+                  type="button"
+                >
+                  {isChangingPin ? 'Keep current PIN' : 'Change PIN'}
+                </button>
+                <button
+                  className="danger-button"
+                  onClick={() => {
+                    setShouldRemovePin(true)
+                    setLockActive(false)
+                    setIsChangingPin(false)
+                    setPinDraft('')
+                    setConfirmPinDraft('')
+                    setError('')
+                  }}
+                  type="button"
+                >
+                  Remove PIN
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="field__help">
+              Create a PIN to protect the settings area on this device.
+            </p>
+          )}
+
+          {shouldRemovePin ? (
+            <p className="field__help">
+              PIN lock will be removed when you save settings.
+            </p>
+          ) : null}
+
+          {!shouldRemovePin && (isChangingPin || !settings.parentLock.pin) ? (
+            <div className="pin-fields">
+              <label className="field">
+                <span className="field-label">Parent PIN</span>
+                <input
+                  autoComplete="off"
+                  className="number-input"
+                  inputMode="numeric"
+                  maxLength={8}
+                  onChange={(event) => setPinDraft(event.target.value)}
+                  placeholder="4-8 digits"
+                  type="password"
+                  value={pinDraft}
+                />
+              </label>
+
+              <label className="field">
+                <span className="field-label">Confirm PIN</span>
+                <input
+                  autoComplete="off"
+                  className="number-input"
+                  inputMode="numeric"
+                  maxLength={8}
+                  onChange={(event) => setConfirmPinDraft(event.target.value)}
+                  placeholder="Repeat PIN"
+                  type="password"
+                  value={confirmPinDraft}
+                />
+              </label>
+            </div>
+          ) : null}
+
+          <p className="field__help">
+            Forgot the PIN later? Because the app is local-only, the recovery path is clearing this
+            app&apos;s stored browser data on that device.
+          </p>
         </section>
 
         <section className="settings-card">
