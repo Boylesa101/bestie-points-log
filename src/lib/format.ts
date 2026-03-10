@@ -15,26 +15,22 @@ export const formatRewardDistance = (currentPoints: number, milestone: number) =
 
 export const formatTimestamp = (timestamp: string) => {
   const date = new Date(timestamp)
-  const diffMs = Date.now() - date.getTime()
 
   if (Number.isNaN(date.getTime())) {
-    return 'Just now'
+    return 'Now'
   }
 
-  const diffMinutes = Math.floor(diffMs / 60000)
+  const now = new Date()
+  const isSameDay =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
 
-  if (diffMinutes < 1) {
-    return 'Just now'
-  }
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60)
-
-  if (diffHours < 24) {
-    return `${diffHours}h ago`
+  if (isSameDay) {
+    return date.toLocaleTimeString([], {
+      hour: 'numeric',
+      minute: '2-digit',
+    })
   }
 
   return date.toLocaleString([], {

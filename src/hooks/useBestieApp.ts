@@ -122,6 +122,16 @@ export const useBestieApp = () => {
           hasSeenIntro: true,
         },
       })),
+    completeSetup: (nextProfile: Profile) =>
+      commit((currentState) => ({
+        ...currentState,
+        profile: sanitizeProfile(nextProfile),
+        settings: {
+          ...currentState.settings,
+          hasCompletedSetup: true,
+          hasSeenIntro: true,
+        },
+      })),
     history: appState.history,
     presets: appState.presets,
     profile: appState.profile,

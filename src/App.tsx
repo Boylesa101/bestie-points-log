@@ -7,9 +7,10 @@ import type { PointActionType, Presets, Profile, Reward } from './types/app'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { RewardsScreen } from './screens/RewardsScreen'
+import { SetupScreen } from './screens/SetupScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 
-type Screen = 'home' | 'history' | 'rewards' | 'settings'
+type Screen = 'home' | 'history' | 'rewards' | 'settings' | 'setup'
 
 interface SettingsPayload {
   presets: Presets
@@ -28,6 +29,7 @@ interface ConfirmState {
 function App() {
   const {
     clearHistory,
+    completeSetup,
     completeIntro,
     history,
     presets,
@@ -53,16 +55,18 @@ function App() {
     }
 
     const timeoutId = window.setTimeout(() => {
+      setScreen(settings.hasCompletedSetup ? 'home' : 'setup')
       setShowSplash(false)
     }, 900)
 
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [settings.hasSeenIntro])
+  }, [settings.hasCompletedSetup, settings.hasSeenIntro])
 
   const handleSplashContinue = () => {
     completeIntro()
+    setScreen(settings.hasCompletedSetup ? 'home' : 'setup')
     setShowSplash(false)
   }
 
@@ -85,7 +89,7 @@ function App() {
     setScreen('home')
   }
 
-  const recentEntries = history.slice(0, 5)
+  const recentEntries = history.slice(0, 3)
 
   return (
     <div className="app-shell">
@@ -117,6 +121,16 @@ function App() {
               profile={profile}
               rewards={rewards}
               totalPoints={totalPoints}
+            />
+          ) : null}
+
+          {screen === 'setup' ? (
+            <SetupScreen
+              onComplete={(profile) => {
+                completeSetup(profile)
+                setScreen('home')
+              }}
+              profile={profile}
             />
           ) : null}
 

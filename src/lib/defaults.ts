@@ -52,6 +52,7 @@ export const DEFAULT_REWARDS: Reward[] = [
 ]
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  hasCompletedSetup: false,
   hasSeenIntro: false,
 }
 
@@ -213,6 +214,7 @@ export const sanitizeSettings = (value: unknown): AppSettings => {
   }
 
   return {
+    hasCompletedSetup: Boolean(value.hasCompletedSetup),
     hasSeenIntro: Boolean(value.hasSeenIntro),
   }
 }

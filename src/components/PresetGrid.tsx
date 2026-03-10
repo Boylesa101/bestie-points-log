@@ -1,4 +1,5 @@
 import type { PointActionType, PresetAction } from '../types/app'
+import { getEntryIcon } from '../lib/icons'
 
 interface PresetGridProps {
   onSelect: (label: string, points: number, type: PointActionType) => void
@@ -13,19 +14,19 @@ export const PresetGrid = ({
   title,
   tone,
 }: PresetGridProps) => (
-  <section className="action-panel">
-    <div className="section-heading">
+  <section className={`action-panel action-panel--${tone}`}>
+    <div className="section-heading section-heading--mock">
       <div>
-        <p className="section-heading__eyebrow">
-          {tone === 'add' ? 'Win points' : 'Lose points'}
-        </p>
+        <p className="section-heading__eyebrow">{title}</p>
         <h3>{title}</h3>
       </div>
-      <div className="chip">{tone === 'add' ? '💚 +50s' : '❤️ -50s'}</div>
+      <div className={`section-heading__tag section-heading__tag--${tone}`}>
+        {tone === 'add' ? 'Good jobs' : 'Oopsies'}
+      </div>
     </div>
 
     {presets.length ? (
-      <div className="preset-grid">
+      <div className={`preset-grid preset-grid--${tone}`}>
         {presets.map((preset) => (
           <button
             className={`preset-button preset-button--${tone}`}
@@ -33,6 +34,7 @@ export const PresetGrid = ({
             onClick={() => onSelect(preset.label, preset.points, tone)}
             type="button"
           >
+            <span className="preset-button__icon">{getEntryIcon(preset.label, tone)}</span>
             <span className="preset-button__label">{preset.label}</span>
             <span className="preset-button__points">
               {tone === 'add' ? '+' : '-'}

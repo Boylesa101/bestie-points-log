@@ -7,11 +7,13 @@ export const prepareImageDataUrl = async (file: File) => {
 
   try {
     const image = await loadImage(imageUrl)
-    const maxSide = 640
-    const scale = Math.min(1, maxSide / Math.max(image.width, image.height))
     const canvas = document.createElement('canvas')
-    canvas.width = Math.max(1, Math.round(image.width * scale))
-    canvas.height = Math.max(1, Math.round(image.height * scale))
+    const outputSize = 320
+    const cropSize = Math.min(image.width, image.height)
+    const sourceX = Math.max(0, (image.width - cropSize) / 2)
+    const sourceY = Math.max(0, (image.height - cropSize) / 2)
+    canvas.width = outputSize
+    canvas.height = outputSize
 
     const context = canvas.getContext('2d')
 
@@ -19,8 +21,27 @@ export const prepareImageDataUrl = async (file: File) => {
       throw new Error('Image editing is not available in this browser.')
     }
 
-    context.drawImage(image, 0, 0, canvas.width, canvas.height)
-    return canvas.toDataURL('image/jpeg', 0.82)
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
+    context.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      cropSize,
+      cropSize,
+      0,
+      0,
+      outputSize,
+      outputSize,
+    )
+
+    const primaryDataUrl = canvas.toDataURL('image/jpeg', 0.74)
+
+    if (primaryDataUrl.length < 700_000) {
+      return primaryDataUrl
+    }
+
+    return canvas.toDataURL('image/jpeg', 0.62)
   } finally {
     URL.revokeObjectURL(imageUrl)
   }

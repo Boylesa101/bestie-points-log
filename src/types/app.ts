@@ -32,6 +32,7 @@ export interface Reward {
 }
 
 export interface AppSettings {
+  hasCompletedSetup: boolean
   hasSeenIntro: boolean
 }
 

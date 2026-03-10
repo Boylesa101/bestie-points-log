@@ -8,16 +8,24 @@ export const SplashScreen = ({
   onStart,
 }: SplashScreenProps) => (
   <main className="splash-screen">
-    <section className="splash-screen__panel">
-      <div className="splash-screen__bubble splash-screen__bubble--one" />
-      <div className="splash-screen__bubble splash-screen__bubble--two" />
+    <section className="splash-screen__panel splash-screen__panel--mock">
+      <div className="splash-screen__bubble splash-screen__bubble--one">☁️</div>
+      <div className="splash-screen__bubble splash-screen__bubble--two">⭐</div>
+      <div className="splash-screen__bubble splash-screen__bubble--three">🌈</div>
+      <div className="splash-screen__bubble splash-screen__bubble--four">🧸</div>
       <div className="splash-screen__sparkle" aria-hidden="true">
         ✨
       </div>
-      <p className="splash-screen__caption">A happy points adventure</p>
-      <h1>BESTIE POINTS LOG</h1>
+      <p className="splash-screen__caption">Welcome</p>
+      <h1>
+        BESTIE
+        <br />
+        POINTS
+        <br />
+        LOG
+      </h1>
       <p>
-        Quick, cheerful point tracking for a parent and a little bestie.
+        Tap in and win stars today.
       </p>
 
       {isFirstLaunch ? (
