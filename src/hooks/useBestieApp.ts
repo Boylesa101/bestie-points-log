@@ -30,6 +30,7 @@ import {
   markQueueAttempt,
   mergeRemoteSnapshot,
 } from '../lib/sync/helpers'
+import { isRewardReadyToReveal } from '../lib/rewards'
 import {
   readHistory,
   readMetadata,
@@ -87,6 +88,7 @@ const updateLocalSyncSession = (
 
 export const useBestieApp = () => {
   const [appState, setAppState] = useState(loadInitialState)
+  const [activeRewardReveal, setActiveRewardReveal] = useState<Reward | null>(null)
   const [storageMessage, setStorageMessage] = useState<string | null>(null)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const appStateRef = useRef(appState)
@@ -560,7 +562,7 @@ export const useBestieApp = () => {
     }
   }
 
-  const saveRewards = (nextRewards: Reward[]) => {
+  const saveRewards = useCallback((nextRewards: Reward[]) => {
     const updatedAt = new Date().toISOString()
     const deviceId = appStateRef.current.syncSession.deviceId
     const updatedRewards = sanitizeRewards(
@@ -586,9 +588,55 @@ export const useBestieApp = () => {
     if (appStateRef.current.syncSession.mode === 'synced') {
       void syncNow()
     }
+  }, [commit, syncNow])
+
+  const updateReward = (
+    rewardId: string,
+    updater: (reward: Reward) => Reward,
+  ) => {
+    const nextRewards = appStateRef.current.rewards.map((reward) =>
+      reward.id === rewardId ? updater(reward) : reward,
+    )
+
+    saveRewards(nextRewards)
   }
 
+  const setRewardClaimed = (rewardId: string, isClaimed: boolean) => {
+    updateReward(rewardId, (reward) => ({
+      ...reward,
+      claimedAt: isClaimed ? new Date().toISOString() : null,
+      isClaimed,
+    }))
+  }
+
+  useEffect(() => {
+    if (activeRewardReveal) {
+      return
+    }
+
+    const rewardToReveal = appState.rewards.find((reward) =>
+      isRewardReadyToReveal(reward, appState.totalPoints),
+    )
+
+    if (!rewardToReveal) {
+      return
+    }
+
+    const revealedAt = new Date().toISOString()
+    const nextReward = {
+      ...rewardToReveal,
+      hasCelebratedUnlock: true,
+      unlockedAt: rewardToReveal.unlockedAt ?? revealedAt,
+    }
+
+    setActiveRewardReveal(nextReward)
+    saveRewards(
+      appState.rewards.map((reward) => (reward.id === rewardToReveal.id ? nextReward : reward)),
+    )
+  }, [activeRewardReveal, appState.rewards, appState.totalPoints, saveRewards])
+
   return {
+    activeRewardReveal,
     clearHistory: () =>
       commit((currentState) => {
         if (currentState.syncSession.mode === 'synced') {
@@ -666,6 +714,8 @@ export const useBestieApp = () => {
         metadata: sanitizeMetadata(currentState.metadata),
         settings: sanitizeSettings(nextSettings),
       })),
+    setRewardClaimed,
+    setRewardRevealDismissed: () => setActiveRewardReveal(null),
     savePresets,
     saveProfile,
     saveRewards,

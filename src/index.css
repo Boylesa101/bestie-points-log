@@ -169,6 +169,11 @@ img {
   color: #64748b;
 }
 
+.reward-card__meta--venue {
+  color: #0f766e;
+  font-weight: 800;
+}
+
 .back-button,
 .icon-button,
 .child-hero__settings {
@@ -800,6 +805,11 @@ img {
   border: 1px solid #fbcfe8;
 }
 
+.reward-card__parent-link {
+  margin-top: 12px;
+  justify-self: start;
+}
+
 .quick-link {
   display: block;
   text-align: left;
@@ -1312,6 +1322,156 @@ img {
   border-radius: 30px;
 }
 
+.reward-details {
+  display: grid;
+  gap: 14px;
+}
+
+.reward-details__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reward-details__item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 18px;
+}
+
+.reward-details__item p {
+  margin: 0;
+  color: #334155;
+  word-break: break-word;
+}
+
+.reward-details__link {
+  color: #7c3aed;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.reward-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.16), transparent 32%),
+    linear-gradient(180deg, rgba(56, 189, 248, 0.96) 0%, rgba(216, 70, 239, 0.96) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.reward-reveal__stars span {
+  position: absolute;
+  font-size: clamp(1.6rem, 7vw, 2.8rem);
+  animation: reward-float 2.6s ease-in-out infinite;
+}
+
+.reward-reveal__stars span:nth-child(1) { top: 10%; left: 12%; }
+.reward-reveal__stars span:nth-child(2) { top: 18%; right: 14%; animation-delay: 0.2s; }
+.reward-reveal__stars span:nth-child(3) { top: 28%; left: 20%; animation-delay: 0.4s; }
+.reward-reveal__stars span:nth-child(4) { bottom: 24%; right: 18%; animation-delay: 0.3s; }
+.reward-reveal__stars span:nth-child(5) { bottom: 18%; left: 16%; animation-delay: 0.5s; }
+.reward-reveal__stars span:nth-child(6) { top: 44%; right: 10%; animation-delay: 0.7s; }
+
+.reward-reveal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 380px);
+  display: grid;
+  gap: 14px;
+  padding: 28px 20px 22px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.94);
+  border: 4px solid #fde68a;
+  border-radius: 34px;
+  box-shadow: 0 28px 48px rgba(15, 23, 42, 0.22);
+}
+
+.reward-reveal__eyebrow {
+  margin: 0;
+  color: #0284c7;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.reward-reveal__panel h2 {
+  margin: 0;
+  color: #d946ef;
+  font-family: 'Baloo 2', 'Trebuchet MS', sans-serif;
+  font-size: clamp(2.8rem, 14vw, 4.2rem);
+  line-height: 0.9;
+}
+
+.reward-reveal__copy {
+  margin: 0;
+  color: #475569;
+  font-weight: 800;
+}
+
+.reward-reveal__card {
+  display: grid;
+  gap: 10px;
+  padding: 18px 16px;
+  background:
+    radial-gradient(circle at top right, rgba(250, 204, 21, 0.24), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+  border: 2px solid #fde68a;
+  border-radius: 28px;
+  animation: reward-card-pop 0.52s ease;
+}
+
+.reward-reveal__icon {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 18px 28px rgba(15, 23, 42, 0.1);
+  font-size: 3rem;
+}
+
+.reward-reveal__title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.reward-reveal__description {
+  margin: 0;
+  color: #475569;
+  font-weight: 700;
+}
+
+.reward-reveal__tag {
+  justify-self: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  color: #0f766e;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.reward-reveal__actions {
+  display: grid;
+  gap: 10px;
+}
+
 .modal-sheet__top {
   display: flex;
   align-items: flex-start;
@@ -1597,6 +1757,30 @@ img {
   }
 }
 
+@keyframes reward-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.9;
+  }
+
+  50% {
+    transform: translateY(-10px) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes reward-card-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 @media (max-width: 359px) {
   .reward-card__footer,
   .editor-row__top {
@@ -1604,6 +1788,7 @@ img {
     align-items: stretch;
   }
 
+  .reward-details__grid,
   .preset-grid--remove,
   .preset-grid--add,
   .actions-row,

@@ -11,11 +11,12 @@ import type {
   Presets,
   Profile,
   QueuedMutation,
+  RewardCategory,
   Reward,
   SyncSession,
 } from '../types/app'
 
-export const STORAGE_SCHEMA_VERSION = 3
+export const STORAGE_SCHEMA_VERSION = 4
 export const DEFAULT_RECORD_TIMESTAMP = '1970-01-01T00:00:00.000Z'
 
 export const DEFAULT_PROFILE: Profile = {
@@ -44,9 +45,13 @@ export const DEFAULT_PRESETS: Presets = {
 }
 
 export const DEFAULT_REWARDS: Reward[] = [
-  createDefaultReward('reward-sticker', 'Sticker', 'Pick a shiny sticker for the chart.', 500, 0),
-  createDefaultReward('reward-treat', 'Treat', 'Choose a little snack or treat.', 1000, 1),
-  createDefaultReward('reward-adventure', 'Park adventure', 'A special play trip to the park.', 1500, 2),
+  createDefaultReward('reward-sticker', 'Sticker', 'sticker', 'Pick a shiny sticker for the chart.', 500, 0),
+  createDefaultReward('reward-treat', 'Treat', 'treat', 'Choose a little snack or treat.', 1000, 1),
+  createDefaultReward('reward-adventure', 'Park adventure', 'day-out', 'A special play trip to the park.', 1500, 2, {
+    eligibilityNotes: 'Parent can add the booking link, code, and venue details later.',
+    venueName: 'Local adventure',
+    visibleBeforeUnlock: true,
+  }),
 ]
 
 export const DEFAULT_PARENT_LOCK: ParentLockSettings = {
@@ -135,6 +140,14 @@ const normalizePositiveInt = (value: unknown, fallback = 0) => {
 
 const normalizeBoolean = (value: unknown, fallback = false) =>
   typeof value === 'boolean' ? value : fallback
+
+const normalizeRewardCategory = (value: unknown): RewardCategory => {
+  if (value === 'day-out' || value === 'home' || value === 'sticker' || value === 'treat') {
+    return value
+  }
+
+  return 'sticker'
+}
 
 export const normalizeTimestamp = (
   value: unknown,
@@ -294,7 +307,9 @@ export const sanitizeRewards = (value: unknown): Reward[] => {
       const title = normalizeText(reward.title)
       const milestone = normalizePositiveInt(reward.milestone)
       const description = normalizeText(reward.description, '', 140)
+      const category = normalizeRewardCategory(reward.category)
       const claimedAt = normalizeTimestamp(reward.claimedAt, null)
+      const unlockedAt = normalizeTimestamp(reward.unlockedAt, null)
       const isClaimed = normalizeBoolean(reward.isClaimed) || claimedAt !== null
 
       if (!title || milestone < 1) {
@@ -302,21 +317,36 @@ export const sanitizeRewards = (value: unknown): Reward[] => {
       }
 
       return {
+        bookingUrl: normalizeText(reward.bookingUrl, '', 240),
+        category,
         claimedAt,
+        discountCode: normalizeText(reward.discountCode, '', 80),
         deletedAt: normalizeTimestamp(reward.deletedAt, null),
         description,
+        eligibilityNotes: normalizeText(reward.eligibilityNotes, '', 280),
+        hasCelebratedUnlock: normalizeBoolean(
+          reward.hasCelebratedUnlock,
+          unlockedAt !== null || isClaimed,
+        ),
         id:
           typeof reward.id === 'string' && reward.id.trim()
             ? reward.id
             : createId(),
+        icon: normalizeIcon(reward.icon),
         isClaimed,
+        lastCheckedAt: normalizeTimestamp(reward.lastCheckedAt, null),
         milestone,
+        offerSource: normalizeText(reward.offerSource, '', 140),
         sortOrder: normalizePositiveInt(reward.sortOrder, index),
         title,
+        unlockedAt,
         updatedAt:
           normalizeTimestamp(reward.updatedAt, DEFAULT_RECORD_TIMESTAMP) ??
           DEFAULT_RECORD_TIMESTAMP,
         updatedByDeviceId: normalizeText(reward.updatedByDeviceId, '', 80) || null,
+        venueName: normalizeText(reward.venueName, '', 140),
+        venueTemplate: normalizeText(reward.venueTemplate, '', 80) || null,
+        visibleBeforeUnlock: normalizeBoolean(reward.visibleBeforeUnlock, true),
       }
     })
     .filter((reward): reward is Reward => reward !== null)
@@ -553,21 +583,36 @@ function createDefaultPreset(
 function createDefaultReward(
   id: string,
   title: string,
+  category: RewardCategory,
   description: string,
   milestone: number,
   sortOrder: number,
+  overrides: Partial<Reward> = {},
 ): Reward {
   return {
+    bookingUrl: '',
+    category,
     claimedAt: null,
+    discountCode: '',
     deletedAt: null,
     description,
+    eligibilityNotes: '',
+    hasCelebratedUnlock: false,
     id,
+    icon: null,
     isClaimed: false,
+    lastCheckedAt: null,
     milestone,
+    offerSource: '',
     sortOrder,
     title,
+    unlockedAt: null,
     updatedAt: DEFAULT_RECORD_TIMESTAMP,
     updatedByDeviceId: null,
+    venueName: '',
+    venueTemplate: null,
+    visibleBeforeUnlock: true,
+    ...overrides,
   }
 }
 

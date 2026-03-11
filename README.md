@@ -12,6 +12,7 @@ The frontend remains a PWA for Cloudflare Pages and stays ready for the existing
 - Cheerful splash screen and first-time setup flow
 - Home screen with win/lose presets, custom point entry, history, rewards, and settings
 - Parent-managed profile, presets, rewards, sounds, PIN lock, export/import, and device management
+- Reward reveals with a full-screen `WELL DONE!` celebration, day out templates, and gated parent offer details
 - Local-first offline behavior with background sync when family mode is enabled
 - PWA install support for Android-class phones
 
@@ -105,6 +106,52 @@ In `Settings -> Family sync`, the primary device can:
 - manually trigger a sync
 
 Existing local-only users can migrate later from `Settings -> Family sync -> Upgrade this log to synced family mode`.
+
+## Day Out Rewards And Reveal Flow
+
+Rewards now support these categories:
+
+- `sticker`
+- `treat`
+- `home`
+- `day-out`
+
+Day out rewards can store:
+
+- venue template and editable venue name
+- booking URL
+- discount code
+- offer source
+- eligibility notes
+- last checked date
+- visible-before-unlock flag
+- unlocked vs claimed state
+
+Unlock behavior:
+
+- when total points reaches the milestone, the reward becomes unlocked
+- the celebration reveal runs once per unlock event
+- unlocked and claimed are stored separately
+- the reveal does not replay on every app reopen once it has been celebrated
+
+The child-facing reveal stays playful and full-screen. Parent-only booking details are shown in a separate gated sheet so links, codes, and notes do not clutter the child view.
+
+## Reward Celebration Audio
+
+The reward reveal tries to play a dedicated celebration file at:
+
+```text
+public/sounds/reward-celebration.mp3
+```
+
+That file is treated as the trumpet / reward reveal sound.
+
+If the file is missing, invalid, or blocked by autoplay rules:
+
+- the app does not crash
+- the reveal still runs
+- a lightweight built-in fallback fanfare is used when possible
+- sound still respects the existing local mute setting
 
 ## Backup Export / Import
 

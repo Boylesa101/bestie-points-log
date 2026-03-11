@@ -3,6 +3,7 @@ import type { Reward } from '../types/app'
 
 interface RewardsScreenProps {
   onBack: () => void
+  onOpenParentDetails: (reward: Reward) => void
   onOpenSettings: () => void
   rewards: Reward[]
   totalPoints: number
@@ -10,6 +11,7 @@ interface RewardsScreenProps {
 
 export const RewardsScreen = ({
   onBack,
+  onOpenParentDetails,
   onOpenSettings,
   rewards,
   totalPoints,
@@ -26,7 +28,7 @@ export const RewardsScreen = ({
           <p className="subscreen__eyebrow">Milestones</p>
           <h1 className="subscreen__title">Rewards</h1>
           <p className="subscreen__lead">
-            Watch the progress bar fill up and plan the next sticker or treat.
+            Watch the progress fill up and unlock stickers, treats, home rewards, and day out surprises.
           </p>
         </div>
 
@@ -49,15 +51,19 @@ export const RewardsScreen = ({
             <span className="chip chip--reward">✨ {readyCount} ready now</span>
           </div>
           <p className="card__hint">
-            Rewards are milestone targets. They stay local to this phone and work offline.
+            Rewards unlock when the milestone is reached. Parent details stay tucked away behind the reward panel.
           </p>
         </section>
 
-        <RewardProgress rewards={rewards} totalPoints={totalPoints} />
+        <RewardProgress
+          onOpenParentDetails={onOpenParentDetails}
+          rewards={rewards}
+          totalPoints={totalPoints}
+        />
 
         <button className="quick-link" onClick={onOpenSettings} type="button">
           Edit rewards in settings
-          <small>Change milestones, names, descriptions, and claimed stickers.</small>
+          <small>Change reward type, booking links, offer notes, and day out details.</small>
         </button>
       </div>
     </main>

@@ -23,7 +23,7 @@ export const ParentGateModal = ({
 
   return (
     <ModalSheet
-      description="Enter the parent PIN to open settings on this device."
+      description="Enter the parent PIN to open this parent-only area on the device."
       onClose={onClose}
       open
       title="Parent gate"

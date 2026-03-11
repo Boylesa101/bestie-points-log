@@ -6,6 +6,7 @@ import type {
   Presets,
   Profile,
   QueuedMutation,
+  RewardCategory,
   Reward,
   SharedFamilySnapshot,
 } from '../../../src/types/app'
@@ -346,22 +347,34 @@ export const buildFamilySnapshot = async (
     }>()
 
   const rewardRows = await env.DB.prepare(
-    `SELECT id, title, description, points_required, claimed, claimed_at, sort_order, deleted_at, updated_at, updated_by_device_id
+    `SELECT id, title, category, icon, description, venue_template, venue_name, booking_url, discount_code, offer_source, eligibility_notes, last_checked_at, visible_before_unlock, unlocked_at, has_celebrated_unlock, points_required, claimed, claimed_at, sort_order, deleted_at, updated_at, updated_by_device_id
      FROM rewards
      WHERE family_id = ?1`,
   )
     .bind(familyId)
     .all<{
+      booking_url: string | null
+      category: string
       claimed: number
       claimed_at: string | null
       deleted_at: string | null
       description: string
+      discount_code: string | null
+      eligibility_notes: string | null
+      has_celebrated_unlock: number
       id: string
+      icon: string | null
+      last_checked_at: string | null
+      offer_source: string | null
       points_required: number
       sort_order: number
       title: string
+      unlocked_at: string | null
       updated_at: string
       updated_by_device_id: string | null
+      venue_name: string | null
+      venue_template: string | null
+      visible_before_unlock: number
     }>()
 
   const eventRows = await env.DB.prepare(
@@ -403,18 +416,40 @@ export const buildFamilySnapshot = async (
       .map(mapPreset),
   }
 
-  const rewards = rewardRows.results.map((reward) => ({
-    claimedAt: reward.claimed_at,
-    deletedAt: reward.deleted_at,
-    description: reward.description,
-    id: reward.id,
-    isClaimed: reward.claimed === 1,
-    milestone: reward.points_required,
-    sortOrder: reward.sort_order,
-    title: reward.title,
-    updatedAt: reward.updated_at,
-    updatedByDeviceId: reward.updated_by_device_id,
-  }))
+  const rewards = rewardRows.results.map((reward) => {
+    const category: RewardCategory =
+      reward.category === 'day-out' ||
+      reward.category === 'home' ||
+      reward.category === 'treat' ||
+      reward.category === 'sticker'
+        ? reward.category
+        : 'sticker'
+
+    return {
+      bookingUrl: reward.booking_url ?? '',
+      category,
+      claimedAt: reward.claimed_at,
+      discountCode: reward.discount_code ?? '',
+      deletedAt: reward.deleted_at,
+      description: reward.description,
+      eligibilityNotes: reward.eligibility_notes ?? '',
+      hasCelebratedUnlock: reward.has_celebrated_unlock === 1,
+      id: reward.id,
+      icon: reward.icon,
+      isClaimed: reward.claimed === 1,
+      lastCheckedAt: reward.last_checked_at,
+      milestone: reward.points_required,
+      offerSource: reward.offer_source ?? '',
+      sortOrder: reward.sort_order,
+      title: reward.title,
+      unlockedAt: reward.unlocked_at,
+      updatedAt: reward.updated_at,
+      updatedByDeviceId: reward.updated_by_device_id,
+      venueName: reward.venue_name ?? '',
+      venueTemplate: reward.venue_template,
+      visibleBeforeUnlock: reward.visible_before_unlock === 1,
+    }
+  })
 
   const history = eventRows.results.map((event) => {
     const type: 'add' | 'remove' = event.delta >= 0 ? 'add' : 'remove'
@@ -603,11 +638,23 @@ const replaceRewards = async (
   for (const reward of rewards) {
     await env.DB.prepare(
       `INSERT INTO rewards (
-        id, family_id, title, description, points_required, claimed, claimed_at, sort_order, deleted_at, updated_at, updated_by_device_id
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+        id, family_id, title, category, icon, description, venue_template, venue_name, booking_url, discount_code, offer_source, eligibility_notes, last_checked_at, visible_before_unlock, unlocked_at, has_celebrated_unlock, points_required, claimed, claimed_at, sort_order, deleted_at, updated_at, updated_by_device_id
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
+        category = excluded.category,
+        icon = excluded.icon,
         description = excluded.description,
+        venue_template = excluded.venue_template,
+        venue_name = excluded.venue_name,
+        booking_url = excluded.booking_url,
+        discount_code = excluded.discount_code,
+        offer_source = excluded.offer_source,
+        eligibility_notes = excluded.eligibility_notes,
+        last_checked_at = excluded.last_checked_at,
+        visible_before_unlock = excluded.visible_before_unlock,
+        unlocked_at = excluded.unlocked_at,
+        has_celebrated_unlock = excluded.has_celebrated_unlock,
         points_required = excluded.points_required,
         claimed = excluded.claimed,
         claimed_at = excluded.claimed_at,
@@ -620,7 +667,19 @@ const replaceRewards = async (
         reward.id,
         familyId,
         reward.title,
+        reward.category,
+        reward.icon,
         reward.description,
+        reward.venueTemplate,
+        reward.venueName,
+        reward.bookingUrl,
+        reward.discountCode,
+        reward.offerSource,
+        reward.eligibilityNotes,
+        reward.lastCheckedAt,
+        reward.visibleBeforeUnlock ? 1 : 0,
+        reward.unlockedAt,
+        reward.hasCelebratedUnlock ? 1 : 0,
         reward.milestone,
         reward.isClaimed ? 1 : 0,
         reward.claimedAt,

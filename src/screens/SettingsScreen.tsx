@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react'
 import { DEFAULT_PROFILE, sanitizePresets, sanitizeProfile, sanitizeRewards } from '../lib/defaults'
 import { getPresetIcon } from '../lib/icons'
 import { prepareImageDataUrl } from '../lib/images'
+import { DAY_OUT_PLACE_OPTIONS, getRewardCategoryIcon } from '../lib/rewards'
 import { LinkedDevicesList } from '../components/LinkedDevicesList'
 import { SyncStatus } from '../components/SyncStatus'
 import type {
@@ -11,6 +12,7 @@ import type {
   PresetAction,
   Presets,
   Profile,
+  RewardCategory,
   Reward,
   SyncSession,
 } from '../types/app'
@@ -182,7 +184,19 @@ export const SettingsScreen = ({
 
   const updateReward = (
     id: string,
-    field: 'description' | 'milestone' | 'title',
+    field:
+      | 'bookingUrl'
+      | 'category'
+      | 'description'
+      | 'discountCode'
+      | 'eligibilityNotes'
+      | 'icon'
+      | 'lastCheckedAt'
+      | 'milestone'
+      | 'offerSource'
+      | 'title'
+      | 'venueName'
+      | 'venueTemplate',
     value: string,
   ) => {
     setRewardDrafts((currentRewards) =>
@@ -193,7 +207,32 @@ export const SettingsScreen = ({
               [field]:
                 field === 'milestone'
                   ? Number.parseInt(value || '0', 10) || 0
+                  : field === 'category'
+                    ? (value as RewardCategory)
                   : value,
+            }
+          : reward,
+      ),
+    )
+  }
+
+  const updateRewardToggle = (
+    id: string,
+    field: 'isClaimed' | 'visibleBeforeUnlock',
+    value: boolean,
+  ) => {
+    setRewardDrafts((currentRewards) =>
+      currentRewards.map((reward) =>
+        reward.id === id
+          ? {
+              ...reward,
+              [field]: value,
+              claimedAt:
+                field === 'isClaimed'
+                  ? value
+                    ? reward.claimedAt ?? new Date().toISOString()
+                    : null
+                  : reward.claimedAt,
             }
           : reward,
       ),
@@ -950,14 +989,16 @@ export const SettingsScreen = ({
                 <div className="editor-row__top">
                   <div className="reward-editor__title">
                     <span className="reward-editor__sticker">
-                      {reward.isClaimed ? '🏅' : '🎁'}
+                      {reward.isClaimed ? '🏅' : getRewardCategoryIcon(reward.category)}
                     </span>
                     <div>
                       <strong>{reward.title || 'Reward'}</strong>
                       <p className="field__help">
                         {reward.isClaimed
                           ? `Claimed${reward.claimedAt ? ` on ${new Date(reward.claimedAt).toLocaleDateString()}` : ''}`
-                          : 'Not claimed yet'}
+                          : reward.category === 'day-out'
+                            ? 'Day out reward'
+                            : 'Not claimed yet'}
                       </p>
                     </div>
                   </div>
@@ -990,6 +1031,30 @@ export const SettingsScreen = ({
                 </div>
 
                 <div className="editor-row__fields">
+                  <select
+                    className="text-input"
+                    onChange={(event) =>
+                      updateReward(reward.id, 'category', event.target.value)
+                    }
+                    value={reward.category}
+                  >
+                    <option value="sticker">Sticker</option>
+                    <option value="treat">Treat</option>
+                    <option value="home">Home reward</option>
+                    <option value="day-out">Day out</option>
+                  </select>
+                  <input
+                    className="text-input text-input--icon"
+                    maxLength={8}
+                    onChange={(event) =>
+                      updateReward(reward.id, 'icon', event.target.value)
+                    }
+                    placeholder={getRewardCategoryIcon(reward.category)}
+                    value={reward.icon ?? ''}
+                  />
+                </div>
+
+                <div className="editor-row__fields">
                   <textarea
                     className="textarea-input"
                     onChange={(event) =>
@@ -1008,9 +1073,107 @@ export const SettingsScreen = ({
                   />
                 </div>
 
+                {reward.category === 'day-out' ? (
+                  <>
+                    <div className="editor-row__fields">
+                      <select
+                        className="text-input"
+                        onChange={(event) => {
+                          const nextTemplate = event.target.value
+                          updateReward(reward.id, 'venueTemplate', nextTemplate)
+                          if (nextTemplate !== 'Custom place') {
+                            updateReward(reward.id, 'venueName', nextTemplate)
+                          }
+                        }}
+                        value={(reward.venueTemplate ?? reward.venueName) || 'Custom place'}
+                      >
+                        {DAY_OUT_PLACE_OPTIONS.map((place) => (
+                          <option key={place} value={place}>
+                            {place}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="text-input"
+                        onChange={(event) =>
+                          updateReward(reward.id, 'venueName', event.target.value)
+                        }
+                        placeholder="Venue name"
+                        value={reward.venueName}
+                      />
+                    </div>
+
+                    <label className="field">
+                      <span className="field-label">Booking link</span>
+                      <input
+                        className="text-input"
+                        onChange={(event) =>
+                          updateReward(reward.id, 'bookingUrl', event.target.value)
+                        }
+                        placeholder="https://..."
+                        value={reward.bookingUrl}
+                      />
+                    </label>
+
+                    <div className="editor-row__fields">
+                      <input
+                        className="text-input"
+                        onChange={(event) =>
+                          updateReward(reward.id, 'discountCode', event.target.value)
+                        }
+                        placeholder="Discount code"
+                        value={reward.discountCode}
+                      />
+                      <input
+                        className="text-input"
+                        onChange={(event) =>
+                          updateReward(reward.id, 'offerSource', event.target.value)
+                        }
+                        placeholder="Offer source"
+                        value={reward.offerSource}
+                      />
+                    </div>
+
+                    <label className="field">
+                      <span className="field-label">Eligibility / notes</span>
+                      <textarea
+                        className="textarea-input"
+                        onChange={(event) =>
+                          updateReward(reward.id, 'eligibilityNotes', event.target.value)
+                        }
+                        value={reward.eligibilityNotes}
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span className="field-label">Last checked date</span>
+                      <input
+                        className="text-input"
+                        onChange={(event) =>
+                          updateReward(reward.id, 'lastCheckedAt', event.target.value)
+                        }
+                        placeholder="2026-03-11"
+                        type="date"
+                        value={reward.lastCheckedAt ? reward.lastCheckedAt.slice(0, 10) : ''}
+                      />
+                    </label>
+                  </>
+                ) : null}
+
+                <label className="toggle-row">
+                  <input
+                    checked={reward.visibleBeforeUnlock}
+                    onChange={(event) =>
+                      updateRewardToggle(reward.id, 'visibleBeforeUnlock', event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  <span>Show reward before it is unlocked</span>
+                </label>
+
                 <div className="reward-editor__status">
                   <span className={`chip ${reward.isClaimed ? 'chip--claimed' : 'chip--reward'}`}>
-                    {reward.isClaimed ? 'Claimed sticker' : 'Ready to earn'}
+                    {reward.isClaimed ? 'Claimed reward' : reward.category === 'day-out' ? 'Day out plan' : 'Ready to earn'}
                   </span>
                 </div>
               </div>
@@ -1106,14 +1269,26 @@ const reorderPresets = (presets: PresetAction[]) =>
   }))
 
 const createRewardDraft = (): Reward => ({
+  bookingUrl: '',
+  category: 'day-out',
   claimedAt: null,
   deletedAt: null,
   description: 'A lovely reward to celebrate progress.',
+  discountCode: '',
+  eligibilityNotes: '',
+  hasCelebratedUnlock: false,
   id: `reward-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  icon: null,
   isClaimed: false,
+  lastCheckedAt: null,
   milestone: 2000,
+  offerSource: '',
   sortOrder: Date.now(),
-  title: 'New reward',
+  title: 'New day out',
+  unlockedAt: null,
   updatedAt: new Date().toISOString(),
   updatedByDeviceId: null,
+  venueName: '',
+  venueTemplate: 'Custom place',
+  visibleBeforeUnlock: true,
 })

@@ -1,12 +1,15 @@
 import { formatRewardDistance } from '../lib/format'
+import { getRewardIcon, isRewardUnlocked } from '../lib/rewards'
 import type { Reward } from '../types/app'
 
 interface RewardProgressProps {
+  onOpenParentDetails?: (reward: Reward) => void
   rewards: Reward[]
   totalPoints: number
 }
 
 export const RewardProgress = ({
+  onOpenParentDetails,
   rewards,
   totalPoints,
 }: RewardProgressProps) => {
@@ -26,7 +29,18 @@ export const RewardProgress = ({
           reward.milestone > 0
             ? Math.min((totalPoints / reward.milestone) * 100, 100)
             : 0
-        const isReadyToClaim = totalPoints >= reward.milestone && !reward.isClaimed
+        const isUnlocked = isRewardUnlocked(reward, totalPoints)
+        const isReadyToClaim = isUnlocked && !reward.isClaimed
+        const isHiddenUntilUnlock = !reward.visibleBeforeUnlock && !isUnlocked
+        const childTitle = isHiddenUntilUnlock ? 'Secret surprise reward' : reward.title
+        const childDescription = isHiddenUntilUnlock
+          ? `${formatRewardDistance(totalPoints, reward.milestone)} until the surprise is revealed.`
+          : reward.description
+        const badgeText = reward.isClaimed
+          ? 'Claimed'
+          : isUnlocked
+            ? `${reward.milestone} pts`
+            : `${reward.milestone} pts`
 
         return (
           <article
@@ -42,14 +56,17 @@ export const RewardProgress = ({
             <div className="reward-card__top">
               <div className="reward-card__copy">
                 <div className="reward-card__sticker">
-                  <span>{reward.isClaimed ? '🏅' : isReadyToClaim ? '✨' : '🎁'}</span>
+                  <span>
+                    {reward.isClaimed ? '🏅' : isReadyToClaim ? '✨' : getRewardIcon(reward)}
+                  </span>
                 </div>
-                <p className="reward-card__title">{reward.title}</p>
-                <p className="reward-card__meta">{reward.description}</p>
+                <p className="reward-card__title">{childTitle}</p>
+                <p className="reward-card__meta">{childDescription}</p>
+                {!isHiddenUntilUnlock && reward.category === 'day-out' && reward.venueName ? (
+                  <p className="reward-card__meta reward-card__meta--venue">📍 {reward.venueName}</p>
+                ) : null}
               </div>
-              <div className="reward-card__badge">
-                {reward.isClaimed ? 'Claimed' : `${reward.milestone} pts`}
-              </div>
+              <div className="reward-card__badge">{badgeText}</div>
             </div>
 
             <div className="progress-track" aria-hidden="true">
@@ -73,6 +90,16 @@ export const RewardProgress = ({
                 </span>
               ) : null}
             </div>
+
+            {onOpenParentDetails && isUnlocked ? (
+              <button
+                className="inline-button reward-card__parent-link"
+                onClick={() => onOpenParentDetails(reward)}
+                type="button"
+              >
+                Parent details
+              </button>
+            ) : null}
           </article>
         )
       })}

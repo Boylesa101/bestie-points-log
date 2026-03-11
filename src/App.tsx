@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { ParentGateModal } from './components/ParentGateModal'
 import { PointsModal } from './components/PointsModal'
+import { RewardDetailsSheet } from './components/RewardDetailsSheet'
+import { RewardRevealOverlay } from './components/RewardRevealOverlay'
 import { SplashScreen } from './components/SplashScreen'
 import { useBestieApp } from './hooks/useBestieApp'
 import {
@@ -51,6 +53,7 @@ function App() {
     clearHistory,
     completeSetup,
     completeIntro,
+    activeRewardReveal,
     exportSnapshot,
     generateSyncCode,
     history,
@@ -65,6 +68,8 @@ function App() {
     savePresets,
     saveProfile,
     saveRewards,
+    setRewardClaimed,
+    setRewardRevealDismissed,
     settings,
     storageMessage,
     syncMessage,
@@ -80,7 +85,9 @@ function App() {
   const [isPointsModalOpen, setIsPointsModalOpen] = useState(false)
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
   const [isParentGateOpen, setIsParentGateOpen] = useState(false)
+  const [parentGateTarget, setParentGateTarget] = useState<'reward-details' | 'settings' | null>(null)
   const [pointReaction, setPointReaction] = useState<PointReactionState | null>(null)
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
   const [transferError, setTransferError] = useState<string | null>(null)
   const [transferMessage, setTransferMessage] = useState<string | null>(null)
 
@@ -190,18 +197,65 @@ function App() {
     }, 900)
   }
 
-  const handleRequestOpenSettings = () => {
-    const shouldRequirePin =
-      settings.parentLock.enabled &&
-      settings.parentLock.isLocked &&
-      Boolean(settings.parentLock.pin)
+  const shouldRequireParentPin =
+    settings.parentLock.enabled &&
+    settings.parentLock.isLocked &&
+    Boolean(settings.parentLock.pin)
 
-    if (shouldRequirePin) {
+  const handleRequestOpenSettings = () => {
+    if (shouldRequireParentPin) {
+      setParentGateTarget('settings')
       setIsParentGateOpen(true)
       return
     }
 
     setScreen('settings')
+  }
+
+  const handleRequestOpenRewardDetails = (reward: Reward) => {
+    if (shouldRequireParentPin) {
+      setSelectedReward(reward)
+      setParentGateTarget('reward-details')
+      setIsParentGateOpen(true)
+      return
+    }
+
+    setSelectedReward(reward)
+  }
+
+  const handleRequestOpenRewardDetailsFromReveal = () => {
+    if (!activeRewardReveal) {
+      return
+    }
+
+    handleRequestOpenRewardDetails(activeRewardReveal)
+  }
+
+  const handleParentGateSuccess = () => {
+    if (parentGateTarget === 'settings') {
+      setScreen('settings')
+    }
+
+    if (parentGateTarget === 'reward-details' && selectedReward) {
+      setSelectedReward(selectedReward)
+    }
+  }
+
+  const handleEditRewardFromDetails = () => {
+    setSelectedReward(null)
+    handleRequestOpenSettings()
+  }
+
+  const handleToggleRewardClaimed = (rewardId: string, isClaimed: boolean) => {
+    setRewardClaimed(rewardId, isClaimed)
+
+    if (selectedReward?.id === rewardId) {
+      setSelectedReward({
+        ...selectedReward,
+        claimedAt: isClaimed ? new Date().toISOString() : null,
+        isClaimed,
+      })
+    }
   }
 
   const recentEntries = history.slice(0, 3)
@@ -269,6 +323,7 @@ function App() {
           {screen === 'rewards' ? (
             <RewardsScreen
               onBack={() => setScreen('home')}
+              onOpenParentDetails={handleRequestOpenRewardDetails}
               onOpenSettings={handleRequestOpenSettings}
               rewards={rewards}
               totalPoints={totalPoints}
@@ -334,15 +389,37 @@ function App() {
             />
           ) : null}
 
+          {selectedReward ? (
+            <RewardDetailsSheet
+              onClose={() => setSelectedReward(null)}
+              onEditInSettings={handleEditRewardFromDetails}
+              onToggleClaimed={handleToggleRewardClaimed}
+              reward={selectedReward}
+            />
+          ) : null}
+
+          {activeRewardReveal ? (
+            <RewardRevealOverlay
+              onClose={setRewardRevealDismissed}
+              onOpenParentDetails={handleRequestOpenRewardDetailsFromReveal}
+              reward={activeRewardReveal}
+              soundEnabled={settings.soundEnabled}
+            />
+          ) : null}
+
           {isParentGateOpen ? (
             <ParentGateModal
-              onClose={() => setIsParentGateOpen(false)}
+              onClose={() => {
+                setIsParentGateOpen(false)
+                setParentGateTarget(null)
+              }}
               onUnlock={(pin) => {
                 const isMatch = pin === settings.parentLock.pin
 
                 if (isMatch) {
                   setIsParentGateOpen(false)
-                  setScreen('settings')
+                  handleParentGateSuccess()
+                  setParentGateTarget(null)
                 }
 
                 return isMatch
@@ -379,6 +456,6 @@ function App() {
       )}
     </div>
   )
-}
+  }
 
 export default App

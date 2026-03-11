@@ -1,22 +1,25 @@
 import type { PointActionType } from '../types/app'
 
-type SoundEffect = PointActionType | 'splash'
+type SoundEffect = PointActionType | 'reward' | 'splash'
 
 const SOUND_FILES: Record<SoundEffect, string> = {
   add: '/sounds/yay.mp3',
   remove: '/sounds/aww.mp3',
+  reward: '/sounds/reward-celebration.mp3',
   splash: '/sounds/laugh.mp3',
 }
 
 const SOUND_VOLUMES: Record<SoundEffect, number> = {
   add: 0.52,
   remove: 0.46,
+  reward: 0.62,
   splash: 0.38,
 }
 
 const SOUND_PLAYBACK_RATES: Record<SoundEffect, number> = {
   add: 1.12,
   remove: 1.04,
+  reward: 1,
   splash: 1,
 }
 
@@ -52,6 +55,9 @@ export const playPointSound = async (
 export const playSplashSound = async (enabled: boolean) =>
   playSoundEffect('splash', enabled)
 
+export const playRewardCelebrationSound = async (enabled: boolean) =>
+  playSoundEffect('reward', enabled)
+
 const playSoundEffect = async (
   effect: SoundEffect,
   enabled: boolean,
@@ -79,6 +85,8 @@ const playSoundEffect = async (
 
     if (effect === 'add') {
       playPositiveSound(audioContext)
+    } else if (effect === 'reward') {
+      playRewardFallback(audioContext)
     } else if (effect === 'remove') {
       playNegativeSound(audioContext)
     } else {
@@ -213,6 +221,42 @@ const playSplashFallback = (audioContext: AudioContext) => {
     frequency: 659.25,
     gain: 0.026,
     start: start + 0.16,
+    type: 'sine',
+  })
+}
+
+const playRewardFallback = (audioContext: AudioContext) => {
+  const start = audioContext.currentTime + 0.01
+  playTone(audioContext, {
+    attack: 0.01,
+    duration: 0.18,
+    frequency: 523.25,
+    gain: 0.045,
+    start,
+    type: 'triangle',
+  })
+  playTone(audioContext, {
+    attack: 0.01,
+    duration: 0.22,
+    frequency: 659.25,
+    gain: 0.042,
+    start: start + 0.08,
+    type: 'triangle',
+  })
+  playTone(audioContext, {
+    attack: 0.01,
+    duration: 0.24,
+    frequency: 783.99,
+    gain: 0.038,
+    start: start + 0.16,
+    type: 'sine',
+  })
+  playTone(audioContext, {
+    attack: 0.01,
+    duration: 0.32,
+    frequency: 1046.5,
+    gain: 0.034,
+    start: start + 0.24,
     type: 'sine',
   })
 }
