@@ -1,5 +1,7 @@
 # Bestie Points Log
 
+Current version: `1.1.0`
+
 Bestie Points Log is a cheerful mobile-first React app for tracking a child’s points. It now supports two modes from one shared codebase:
 
 - `Local-only mode`: everything stays on one device in `localStorage`
@@ -12,6 +14,7 @@ The frontend remains a PWA for Cloudflare Pages and stays ready for the existing
 - Cheerful splash screen and first-time setup flow
 - Home screen with win/lose presets, custom point entry, history, rewards, and settings
 - Parent-managed profile, presets, rewards, sounds, PIN lock, export/import, and device management
+- Gentle language checks for parent-entered custom wording, with calmer suggestions and a soft override
 - Reward reveals with a full-screen `WELL DONE!` celebration, day out templates, and gated parent offer details
 - Local-first offline behavior with background sync when family mode is enabled
 - PWA install support for Android-class phones
@@ -38,6 +41,7 @@ The frontend remains a PWA for Cloudflare Pages and stays ready for the existing
   - local mute preference
   - local PIN lock
   - local daily reminder preference and time
+  - local gentle language check preference
   - local device name
   - local cache and sync metadata
 
@@ -163,6 +167,56 @@ If the file is missing, invalid, or blocked by autoplay rules:
 - the reveal still runs
 - a lightweight built-in fallback fanfare is used when possible
 - sound still respects the existing local mute setting
+
+## Gentle Language Check
+
+The app now softly checks parent-entered text in these places before save:
+
+- custom points reasons in `Type points`
+- editable win and lose preset labels
+- reward titles
+- reward descriptions
+- reward notes and venue names
+
+How it works:
+
+- the check is rule-based and runs locally on the device
+- it looks for a small starter list of harsh, shaming, insulting, or punitive phrases
+- if wording is flagged, the app shows a calm `Are you sure?` prompt
+- the parent can choose `Edit wording` or `Use anyway`
+- the app can also show calmer phrase suggestions
+
+The feature is intended as a gentle nudge, not a hard block or accusation.
+
+Default device-local settings:
+
+- `Gentle language check`: on
+- `Show calmer wording suggestions`: on
+- `Show support link in warnings`: on
+
+Starter phrase categories include:
+
+- insults: `stupid`, `idiot`, `dumb`
+- shame language: `useless`, `pathetic`, `disgusting`
+- aggressive labels: `bad boy`, `bad girl`, `horrible child`, `brat`
+- rejection language: `I hate you`, `you’re awful`, `no one likes you`
+- punitive phrasing: `punishment`, `punish`
+
+Because this feature is device-local and tied to parent text-entry flows, it is not synced across family devices as a shared rule state.
+
+## Parent Support
+
+Warnings can link to a short support sheet with:
+
+- `Family Lives`
+  - Parenting and family support helpline
+  - `0808 800 2222`
+  - WhatsApp `07441 444125`
+- `NSPCC Helpline`
+  - For serious worries about a child’s safety
+  - `0808 800 5000`
+
+If there is immediate danger, contact local emergency services right away.
 
 ## PWA Update Prompt
 
@@ -432,7 +486,7 @@ Local device storage still uses separate `localStorage` keys:
 - Older local snapshots are sanitized and upgraded automatically
 - A parent can migrate an existing local-only log to synced family mode from settings
 - Migration uploads the current profile, child photo, presets, rewards, and point history to the shared backend
-- Existing installs also auto-seed the newer local reminder settings, reminder metadata, and notification permission state fields if they were missing
+- Existing installs also auto-seed the newer local reminder settings, tone-check settings, reminder metadata, and notification permission state fields if they were missing
 
 ## Current Limitations / Follow-Up Ideas
 

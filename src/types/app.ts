@@ -89,6 +89,7 @@ export interface RewardCelebration {
 
 export interface AppSettings {
   deviceName: string
+  gentleLanguageCheckEnabled: boolean
   hasCompletedSetup: boolean
   hasSeenIntro: boolean
   reminderEnabled: boolean
@@ -96,6 +97,8 @@ export interface AppSettings {
   parentDisplayName: string
   parentLock: ParentLockSettings
   soundEnabled: boolean
+  toneCheckSuggestionsEnabled: boolean
+  toneCheckSupportEnabled: boolean
 }
 
 export interface AppMetadata {

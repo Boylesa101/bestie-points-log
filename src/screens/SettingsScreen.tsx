@@ -4,8 +4,11 @@ import { DEFAULT_PROFILE, sanitizePresets, sanitizeProfile, sanitizeRewards } fr
 import { getPresetIcon } from '../lib/icons'
 import { prepareImageDataUrl } from '../lib/images'
 import { DAY_OUT_PLACE_OPTIONS, getRewardCategoryIcon } from '../lib/rewards'
+import { runToneCheck, type ToneCheckResult } from '../lib/toneCheck'
 import { LinkedDevicesList } from '../components/LinkedDevicesList'
+import { ParentSupportSheet } from '../components/ParentSupportSheet'
 import { SyncStatus } from '../components/SyncStatus'
+import { ToneCheckPrompt } from '../components/ToneCheckPrompt'
 import type {
   AppMetadata,
   AppSettings,
@@ -24,6 +27,8 @@ interface SettingsPayload {
   rewards: Reward[]
   settings: AppSettings
 }
+
+type SaveIntent = 'save' | 'upgrade'
 
 interface SettingsScreenProps {
   isActive: boolean
@@ -73,9 +78,18 @@ export const SettingsScreen = ({
   const [addPresets, setAddPresets] = useState(presets.add)
   const [removePresets, setRemovePresets] = useState(presets.remove)
   const [rewardDrafts, setRewardDrafts] = useState(rewards)
+  const [gentleLanguageCheckEnabled, setGentleLanguageCheckEnabled] = useState(
+    settings.gentleLanguageCheckEnabled,
+  )
   const [reminderEnabled, setReminderEnabled] = useState(settings.reminderEnabled)
   const [reminderTime, setReminderTime] = useState(settings.reminderTime)
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled)
+  const [toneCheckSuggestionsEnabled, setToneCheckSuggestionsEnabled] = useState(
+    settings.toneCheckSuggestionsEnabled,
+  )
+  const [toneCheckSupportEnabled, setToneCheckSupportEnabled] = useState(
+    settings.toneCheckSupportEnabled,
+  )
   const [lockActive, setLockActive] = useState(settings.parentLock.isLocked)
   const [parentDisplayName, setParentDisplayName] = useState(settings.parentDisplayName)
   const [deviceName, setDeviceName] = useState(settings.deviceName)
@@ -90,6 +104,11 @@ export const SettingsScreen = ({
   const [activePairingCode, setActivePairingCode] = useState<PairingCodeState | null>(
     syncSession.activePairingCode,
   )
+  const [toneCheckResult, setToneCheckResult] = useState<ToneCheckResult | null>(null)
+  const [pendingSaveIntent, setPendingSaveIntent] = useState<SaveIntent | null>(null)
+  const [pendingPayload, setPendingPayload] = useState<SettingsPayload | null>(null)
+  const [toneOverrideSignature, setToneOverrideSignature] = useState<string | null>(null)
+  const [isSupportOpen, setIsSupportOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const importInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -103,9 +122,12 @@ export const SettingsScreen = ({
     setAddPresets(presets.add)
     setRemovePresets(presets.remove)
     setRewardDrafts(rewards)
+    setGentleLanguageCheckEnabled(settings.gentleLanguageCheckEnabled)
     setReminderEnabled(settings.reminderEnabled)
     setReminderTime(settings.reminderTime)
     setSoundEnabled(settings.soundEnabled)
+    setToneCheckSuggestionsEnabled(settings.toneCheckSuggestionsEnabled)
+    setToneCheckSupportEnabled(settings.toneCheckSupportEnabled)
     setLockActive(settings.parentLock.isLocked)
     setParentDisplayName(settings.parentDisplayName)
     setDeviceName(settings.deviceName)
@@ -118,6 +140,11 @@ export const SettingsScreen = ({
     setIsWorkingOnSync(false)
     setSyncNotice(null)
     setActivePairingCode(syncSession.activePairingCode)
+    setToneCheckResult(null)
+    setPendingSaveIntent(null)
+    setPendingPayload(null)
+    setToneOverrideSignature(null)
+    setIsSupportOpen(false)
   }, [isActive, presets, profile, rewards, settings, syncSession.activePairingCode])
 
   const updatePreset = (
@@ -126,6 +153,7 @@ export const SettingsScreen = ({
     field: 'icon' | 'label' | 'points' | 'visibleOnHome',
     value: boolean | string,
   ) => {
+    setToneOverrideSignature(null)
     const setter = group === 'add' ? setAddPresets : setRemovePresets
 
     setter((currentPresets) =>
@@ -146,6 +174,7 @@ export const SettingsScreen = ({
   }
 
   const addPreset = (group: 'add' | 'remove') => {
+    setToneOverrideSignature(null)
     const setter = group === 'add' ? setAddPresets : setRemovePresets
 
     setter((currentPresets) => [
@@ -155,6 +184,7 @@ export const SettingsScreen = ({
   }
 
   const removePreset = (group: 'add' | 'remove', id: string) => {
+    setToneOverrideSignature(null)
     const setter = group === 'add' ? setAddPresets : setRemovePresets
     setter((currentPresets) =>
       reorderPresets(currentPresets.filter((preset) => preset.id !== id)),
@@ -166,6 +196,7 @@ export const SettingsScreen = ({
     id: string,
     direction: 'down' | 'up',
   ) => {
+    setToneOverrideSignature(null)
     const setter = group === 'add' ? setAddPresets : setRemovePresets
 
     setter((currentPresets) => {
@@ -208,6 +239,7 @@ export const SettingsScreen = ({
       | 'venueTemplate',
     value: string,
   ) => {
+    setToneOverrideSignature(null)
     setRewardDrafts((currentRewards) =>
       currentRewards.map((reward) =>
         reward.id === id
@@ -230,6 +262,7 @@ export const SettingsScreen = ({
     field: 'isClaimed' | 'visibleBeforeUnlock',
     value: boolean,
   ) => {
+    setToneOverrideSignature(null)
     setRewardDrafts((currentRewards) =>
       currentRewards.map((reward) =>
         reward.id === id
@@ -249,6 +282,7 @@ export const SettingsScreen = ({
   }
 
   const toggleRewardClaim = (id: string) => {
+    setToneOverrideSignature(null)
     setRewardDrafts((currentRewards) =>
       currentRewards.map((reward) =>
         reward.id === id
@@ -263,6 +297,7 @@ export const SettingsScreen = ({
   }
 
   const addReward = () => {
+    setToneOverrideSignature(null)
     setRewardDrafts((currentRewards) => [
       ...currentRewards,
       createRewardDraft(),
@@ -270,6 +305,7 @@ export const SettingsScreen = ({
   }
 
   const removeReward = (id: string) => {
+    setToneOverrideSignature(null)
     setRewardDrafts((currentRewards) =>
       currentRewards.filter((reward) => reward.id !== id),
     )
@@ -350,6 +386,7 @@ export const SettingsScreen = ({
     const nextSettings: AppSettings = {
       ...settings,
       deviceName: deviceName.trim(),
+      gentleLanguageCheckEnabled,
       parentDisplayName: parentDisplayName.trim() || 'Parent',
       parentLock: {
         enabled: Boolean(nextPin),
@@ -359,6 +396,8 @@ export const SettingsScreen = ({
       reminderEnabled,
       reminderTime,
       soundEnabled,
+      toneCheckSuggestionsEnabled,
+      toneCheckSupportEnabled,
     }
 
     setError('')
@@ -371,20 +410,45 @@ export const SettingsScreen = ({
     }
   }
 
-  const handleSave = () => {
-    const payload = buildNextPayload()
+  const buildToneCheckResult = (payload: SettingsPayload) =>
+    runToneCheck([
+      ...payload.presets.add.map((preset) => ({
+        key: `preset-add-${preset.id}`,
+        label: `Win preset "${preset.label}"`,
+        value: preset.label,
+      })),
+      ...payload.presets.remove.map((preset) => ({
+        key: `preset-remove-${preset.id}`,
+        label: `Lose preset "${preset.label}"`,
+        value: preset.label,
+      })),
+      ...payload.rewards.flatMap((reward) => [
+        {
+          key: `reward-title-${reward.id}`,
+          label: `Reward title "${reward.title}"`,
+          value: reward.title,
+        },
+        {
+          key: `reward-description-${reward.id}`,
+          label: `Reward description for "${reward.title}"`,
+          value: reward.description,
+        },
+        {
+          key: `reward-notes-${reward.id}`,
+          label: `Reward notes for "${reward.title}"`,
+          value: reward.eligibilityNotes,
+        },
+        {
+          key: `reward-venue-${reward.id}`,
+          label: `Reward venue for "${reward.title}"`,
+          value: reward.venueName,
+        },
+      ]),
+    ])
 
-    if (!payload) {
-      return
-    }
-
-    onSave(payload)
-  }
-
-  const handleUpgradeToSync = async () => {
-    const payload = buildNextPayload()
-
-    if (!payload) {
+  const continueSaveIntent = async (payload: SettingsPayload, intent: SaveIntent) => {
+    if (intent === 'save') {
+      onSave(payload)
       return
     }
 
@@ -404,6 +468,38 @@ export const SettingsScreen = ({
     } finally {
       setIsWorkingOnSync(false)
     }
+  }
+
+  const maybeConfirmToneBeforeSave = async (intent: SaveIntent) => {
+    const payload = buildNextPayload()
+
+    if (!payload) {
+      return
+    }
+
+    if (!payload.settings.gentleLanguageCheckEnabled) {
+      await continueSaveIntent(payload, intent)
+      return
+    }
+
+    const nextToneCheck = buildToneCheckResult(payload)
+
+    if (nextToneCheck.isFlagged && nextToneCheck.signature !== toneOverrideSignature) {
+      setPendingPayload(payload)
+      setPendingSaveIntent(intent)
+      setToneCheckResult(nextToneCheck)
+      return
+    }
+
+    await continueSaveIntent(payload, intent)
+  }
+
+  const handleSave = () => {
+    void maybeConfirmToneBeforeSave('save')
+  }
+
+  const handleUpgradeToSync = async () => {
+    await maybeConfirmToneBeforeSave('upgrade')
   }
 
   const handleCreateSyncCode = async () => {
@@ -647,6 +743,59 @@ export const SettingsScreen = ({
                   ? 'Not available here'
                   : 'Will be requested when needed'}
           </p>
+
+          <div className="settings-divider" />
+
+          <div className="settings-card__header settings-card__header--subsection">
+            <h3>Gentle language check</h3>
+            <div className="chip">🫶 This phone only</div>
+          </div>
+
+          <label className="toggle-row toggle-row--card">
+            <input
+              checked={gentleLanguageCheckEnabled}
+              onChange={(event) => {
+                setGentleLanguageCheckEnabled(event.target.checked)
+                setToneOverrideSignature(null)
+              }}
+              type="checkbox"
+            />
+            <span>Check custom wording before save</span>
+          </label>
+
+          <label className="toggle-row toggle-row--card">
+            <input
+              checked={toneCheckSuggestionsEnabled}
+              disabled={!gentleLanguageCheckEnabled}
+              onChange={(event) => setToneCheckSuggestionsEnabled(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Show calmer wording suggestions</span>
+          </label>
+
+          <label className="toggle-row toggle-row--card">
+            <input
+              checked={toneCheckSupportEnabled}
+              disabled={!gentleLanguageCheckEnabled}
+              onChange={(event) => setToneCheckSupportEnabled(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Show support link in warnings</span>
+          </label>
+
+          <div className="support-row">
+            <p className="field__help">
+              This gentle check stays local to this phone and only appears in parent text-entry
+              flows like custom reasons, presets, and rewards.
+            </p>
+            <button
+              className="soft-button soft-button--violet"
+              onClick={() => setIsSupportOpen(true)}
+              type="button"
+            >
+              Need support?
+            </button>
+          </div>
 
           {settings.parentLock.pin && !shouldRemovePin ? (
             <>
@@ -1326,6 +1475,32 @@ export const SettingsScreen = ({
           Save settings
         </button>
       </div>
+
+      <ToneCheckPrompt
+        onEdit={() => {
+          setToneCheckResult(null)
+          setPendingPayload(null)
+          setPendingSaveIntent(null)
+        }}
+        onOpenSupport={() => setIsSupportOpen(true)}
+        onUseAnyway={() => {
+          if (!pendingPayload || !pendingSaveIntent || !toneCheckResult) {
+            return
+          }
+
+          setToneOverrideSignature(toneCheckResult.signature)
+          setToneCheckResult(null)
+          setPendingPayload(null)
+          setPendingSaveIntent(null)
+          void continueSaveIntent(pendingPayload, pendingSaveIntent)
+        }}
+        open={Boolean(toneCheckResult)}
+        result={toneCheckResult}
+        showSuggestions={toneCheckSuggestionsEnabled}
+        showSupportLink={toneCheckSupportEnabled}
+      />
+
+      <ParentSupportSheet onClose={() => setIsSupportOpen(false)} open={isSupportOpen} />
     </main>
   )
 }

@@ -17,7 +17,7 @@ import type {
   SyncSession,
 } from '../types/app'
 
-export const STORAGE_SCHEMA_VERSION = 4
+export const STORAGE_SCHEMA_VERSION = 5
 export const DEFAULT_RECORD_TIMESTAMP = '1970-01-01T00:00:00.000Z'
 
 export const DEFAULT_PROFILE: Profile = {
@@ -63,6 +63,7 @@ export const DEFAULT_PARENT_LOCK: ParentLockSettings = {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   deviceName: '',
+  gentleLanguageCheckEnabled: true,
   hasCompletedSetup: false,
   hasSeenIntro: false,
   reminderEnabled: false,
@@ -70,6 +71,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   parentDisplayName: 'Parent',
   parentLock: DEFAULT_PARENT_LOCK,
   soundEnabled: true,
+  toneCheckSuggestionsEnabled: true,
+  toneCheckSupportEnabled: true,
 }
 
 export const DEFAULT_METADATA: AppMetadata = {
@@ -379,6 +382,10 @@ export const sanitizeSettings = (value: unknown): AppSettings => {
 
   return {
     deviceName: normalizeText(value.deviceName, '', 40),
+    gentleLanguageCheckEnabled: normalizeBoolean(
+      value.gentleLanguageCheckEnabled,
+      DEFAULT_SETTINGS.gentleLanguageCheckEnabled,
+    ),
     hasCompletedSetup: Boolean(value.hasCompletedSetup),
     hasSeenIntro: Boolean(value.hasSeenIntro),
     reminderEnabled: normalizeBoolean(value.reminderEnabled, DEFAULT_SETTINGS.reminderEnabled),
@@ -386,6 +393,14 @@ export const sanitizeSettings = (value: unknown): AppSettings => {
     parentDisplayName: normalizeText(value.parentDisplayName, 'Parent', 40),
     parentLock: sanitizeParentLock(value.parentLock),
     soundEnabled: normalizeBoolean(value.soundEnabled, DEFAULT_SETTINGS.soundEnabled),
+    toneCheckSuggestionsEnabled: normalizeBoolean(
+      value.toneCheckSuggestionsEnabled,
+      DEFAULT_SETTINGS.toneCheckSuggestionsEnabled,
+    ),
+    toneCheckSupportEnabled: normalizeBoolean(
+      value.toneCheckSupportEnabled,
+      DEFAULT_SETTINGS.toneCheckSupportEnabled,
+    ),
   }
 }
 

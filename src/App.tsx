@@ -615,6 +615,9 @@ function App() {
                 handlePointsAction({ amount, reason, type })
                 setIsPointsModalOpen(false)
               }}
+              toneCheckEnabled={settings.gentleLanguageCheckEnabled}
+              toneCheckSuggestionsEnabled={settings.toneCheckSuggestionsEnabled}
+              toneCheckSupportEnabled={settings.toneCheckSupportEnabled}
             />
           ) : null}
 
