@@ -1,27 +1,33 @@
 import type { PointActionType } from '../types/app'
 
-const SOUND_FILES: Record<PointActionType, string> = {
+type SoundEffect = PointActionType | 'splash'
+
+const SOUND_FILES: Record<SoundEffect, string> = {
   add: '/sounds/yay.mp3',
   remove: '/sounds/aww.mp3',
+  splash: '/sounds/laugh.mp3',
 }
 
-const SOUND_VOLUMES: Record<PointActionType, number> = {
+const SOUND_VOLUMES: Record<SoundEffect, number> = {
   add: 0.52,
   remove: 0.46,
+  splash: 0.38,
 }
 
-const SOUND_PLAYBACK_RATES: Record<PointActionType, number> = {
+const SOUND_PLAYBACK_RATES: Record<SoundEffect, number> = {
   add: 1.12,
   remove: 1.04,
+  splash: 1,
 }
 
-const SOUND_CLIP_LENGTH_MS: Record<PointActionType, number> = {
+const SOUND_CLIP_LENGTH_MS: Record<SoundEffect, number> = {
   add: 1250,
   remove: 1450,
+  splash: 1800,
 }
 
 let sharedAudioContext: AudioContext | null = null
-const sharedAudioElements: Partial<Record<PointActionType, HTMLAudioElement>> = {}
+const sharedAudioElements: Partial<Record<SoundEffect, HTMLAudioElement>> = {}
 
 const getAudioContext = () => {
   if (typeof window === 'undefined') {
@@ -47,12 +53,20 @@ const getAudioContext = () => {
 export const playPointSound = async (
   type: PointActionType,
   enabled: boolean,
+) => playSoundEffect(type, enabled)
+
+export const playSplashSound = async (enabled: boolean) =>
+  playSoundEffect('splash', enabled)
+
+const playSoundEffect = async (
+  effect: SoundEffect,
+  enabled: boolean,
 ) => {
   if (!enabled) {
     return false
   }
 
-  const assetPlayed = await playAudioAsset(type)
+  const assetPlayed = await playAudioAsset(effect)
 
   if (assetPlayed) {
     return true
@@ -69,10 +83,12 @@ export const playPointSound = async (
       await audioContext.resume()
     }
 
-    if (type === 'add') {
+    if (effect === 'add') {
       playPositiveSound(audioContext)
-    } else {
+    } else if (effect === 'remove') {
       playNegativeSound(audioContext)
+    } else {
+      playSplashFallback(audioContext)
     }
 
     return true
@@ -81,13 +97,13 @@ export const playPointSound = async (
   }
 }
 
-const playAudioAsset = async (type: PointActionType) => {
+const playAudioAsset = async (effect: SoundEffect) => {
   if (typeof window === 'undefined' || typeof Audio === 'undefined') {
     return false
   }
 
   try {
-    const sourceAudio = getSharedAudio(type)
+    const sourceAudio = getSharedAudio(effect)
 
     if (!sourceAudio) {
       return false
@@ -95,7 +111,7 @@ const playAudioAsset = async (type: PointActionType) => {
 
     const playbackAudio = sourceAudio.cloneNode() as HTMLAudioElement
     playbackAudio.volume = sourceAudio.volume
-    playbackAudio.playbackRate = SOUND_PLAYBACK_RATES[type]
+    playbackAudio.playbackRate = SOUND_PLAYBACK_RATES[effect]
     playbackAudio.preload = 'auto'
     playbackAudio.currentTime = 0
     await playbackAudio.play()
@@ -103,31 +119,31 @@ const playAudioAsset = async (type: PointActionType) => {
       playbackAudio.pause()
       playbackAudio.currentTime = 0
       playbackAudio.src = ''
-    }, SOUND_CLIP_LENGTH_MS[type])
+    }, SOUND_CLIP_LENGTH_MS[effect])
     return true
   } catch {
     return false
   }
 }
 
-const getSharedAudio = (type: PointActionType) => {
-  if (sharedAudioElements[type]) {
-    return sharedAudioElements[type] ?? null
+const getSharedAudio = (effect: SoundEffect) => {
+  if (sharedAudioElements[effect]) {
+    return sharedAudioElements[effect] ?? null
   }
 
   if (typeof window === 'undefined' || typeof Audio === 'undefined') {
     return null
   }
 
-  const audio = new Audio(getSoundUrl(type))
+  const audio = new Audio(getSoundUrl(effect))
   audio.preload = 'auto'
-  audio.volume = SOUND_VOLUMES[type]
-  sharedAudioElements[type] = audio
+  audio.volume = SOUND_VOLUMES[effect]
+  sharedAudioElements[effect] = audio
   return audio
 }
 
-const getSoundUrl = (type: PointActionType) =>
-  new URL(SOUND_FILES[type], window.location.origin).toString()
+const getSoundUrl = (effect: SoundEffect) =>
+  new URL(SOUND_FILES[effect], window.location.origin).toString()
 
 const playPositiveSound = (audioContext: AudioContext) => {
   const start = audioContext.currentTime + 0.01
@@ -174,6 +190,34 @@ const playNegativeSound = (audioContext: AudioContext) => {
     gain: 0.035,
     start: start + 0.08,
     type: 'triangle',
+  })
+}
+
+const playSplashFallback = (audioContext: AudioContext) => {
+  const start = audioContext.currentTime + 0.01
+  playTone(audioContext, {
+    attack: 0.02,
+    duration: 0.22,
+    frequency: 392,
+    gain: 0.03,
+    start,
+    type: 'triangle',
+  })
+  playTone(audioContext, {
+    attack: 0.02,
+    duration: 0.26,
+    frequency: 523.25,
+    gain: 0.028,
+    start: start + 0.08,
+    type: 'sine',
+  })
+  playTone(audioContext, {
+    attack: 0.02,
+    duration: 0.3,
+    frequency: 659.25,
+    gain: 0.026,
+    start: start + 0.16,
+    type: 'sine',
   })
 }
 

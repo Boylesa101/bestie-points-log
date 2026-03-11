@@ -203,6 +203,7 @@ function App() {
       {showSplash ? (
         <SplashScreen
           isFirstLaunch={!settings.hasSeenIntro}
+          soundEnabled={settings.soundEnabled}
           onStart={handleSplashContinue}
         />
       ) : (
