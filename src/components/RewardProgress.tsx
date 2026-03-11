@@ -26,15 +26,30 @@ export const RewardProgress = ({
           reward.milestone > 0
             ? Math.min((totalPoints / reward.milestone) * 100, 100)
             : 0
+        const isReadyToClaim = totalPoints >= reward.milestone && !reward.isClaimed
 
         return (
-          <article className="reward-card" key={reward.id}>
+          <article
+            className={`reward-card ${
+              reward.isClaimed
+                ? 'reward-card--claimed'
+                : isReadyToClaim
+                  ? 'reward-card--ready'
+                  : ''
+            }`}
+            key={reward.id}
+          >
             <div className="reward-card__top">
-              <div>
+              <div className="reward-card__copy">
+                <div className="reward-card__sticker">
+                  <span>{reward.isClaimed ? '🏅' : isReadyToClaim ? '✨' : '🎁'}</span>
+                </div>
                 <p className="reward-card__title">{reward.title}</p>
                 <p className="reward-card__meta">{reward.description}</p>
               </div>
-              <div className="reward-card__badge">{reward.milestone} pts</div>
+              <div className="reward-card__badge">
+                {reward.isClaimed ? 'Claimed' : `${reward.milestone} pts`}
+              </div>
             </div>
 
             <div className="progress-track" aria-hidden="true">
@@ -44,9 +59,20 @@ export const RewardProgress = ({
               />
             </div>
 
-            <p className="reward-card__meta">
-              {formatRewardDistance(totalPoints, reward.milestone)}
-            </p>
+            <div className="reward-card__footer">
+              <p className="reward-card__meta">
+                {reward.isClaimed
+                  ? reward.claimedAt
+                    ? `Claimed on ${new Date(reward.claimedAt).toLocaleDateString()}`
+                    : 'Claimed reward'
+                  : formatRewardDistance(totalPoints, reward.milestone)}
+              </p>
+              {isReadyToClaim ? (
+                <span className="reward-card__status reward-card__status--ready">
+                  Ready to claim
+                </span>
+              ) : null}
+            </div>
           </article>
         )
       })}

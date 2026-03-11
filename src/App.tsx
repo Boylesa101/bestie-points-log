@@ -4,6 +4,11 @@ import { ParentGateModal } from './components/ParentGateModal'
 import { PointsModal } from './components/PointsModal'
 import { SplashScreen } from './components/SplashScreen'
 import { useBestieApp } from './hooks/useBestieApp'
+import {
+  buildExportEnvelope,
+  buildExportFilename,
+  parseImportText,
+} from './lib/backup'
 import { playPointSound } from './lib/sound'
 import type {
   AppSettings,
@@ -46,7 +51,9 @@ function App() {
     clearHistory,
     completeSetup,
     completeIntro,
+    exportSnapshot,
     history,
+    importSnapshot,
     presets,
     profile,
     resetPoints,
@@ -66,6 +73,8 @@ function App() {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
   const [isParentGateOpen, setIsParentGateOpen] = useState(false)
   const [pointReaction, setPointReaction] = useState<PointReactionState | null>(null)
+  const [transferError, setTransferError] = useState<string | null>(null)
+  const [transferMessage, setTransferMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!settings.hasSeenIntro) {
@@ -105,7 +114,60 @@ function App() {
     savePresets(presets)
     saveRewards(rewards)
     saveAppSettings(settings)
+    setTransferError(null)
     setScreen('home')
+  }
+
+  const handleExportData = () => {
+    try {
+      const { exportedAt, snapshot } = exportSnapshot()
+      const exportEnvelope = buildExportEnvelope(snapshot, exportedAt)
+      const blob = new Blob([JSON.stringify(exportEnvelope, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const downloadLink = document.createElement('a')
+      downloadLink.href = url
+      downloadLink.download = buildExportFilename(exportedAt)
+      downloadLink.click()
+      URL.revokeObjectURL(url)
+      setTransferError(null)
+      setTransferMessage('Backup exported to a JSON file on this device.')
+    } catch {
+      setTransferMessage(null)
+      setTransferError('The backup could not be exported on this device.')
+    }
+  }
+
+  const handleImportFile = async (file: File) => {
+    try {
+      const text = await file.text()
+      const parsedImport = parseImportText(text)
+
+      setTransferError(null)
+      setTransferMessage(
+        `Backup ready to import from schema v${parsedImport.importedSchemaVersion}.`,
+      )
+      setConfirmState({
+        action: () => {
+          importSnapshot(parsedImport.snapshot, parsedImport.importedSchemaVersion)
+          setTransferError(null)
+          setTransferMessage('Backup imported and saved to this device.')
+          setConfirmState(null)
+          setScreen(parsedImport.snapshot.settings.hasCompletedSetup ? 'home' : 'setup')
+        },
+        confirmLabel: 'Import backup',
+        description:
+          'This will overwrite the current local Bestie Points Log data on this device.',
+        title: 'Import this backup file?',
+        tone: 'danger',
+      })
+    } catch (error) {
+      setTransferMessage(null)
+      setTransferError(
+        error instanceof Error ? error.message : 'That backup file could not be imported.',
+      )
+    }
   }
 
   const handlePointsAction = ({ amount, reason, type }: PointsActionInput) => {
@@ -225,10 +287,14 @@ function App() {
                 })
               }
               onSave={handleSaveSettings}
+              onExportData={handleExportData}
+              onImportFile={handleImportFile}
               presets={presets}
               profile={profile}
               rewards={rewards}
               settings={settings}
+              transferError={transferError}
+              transferMessage={transferMessage}
             />
           ) : null}
 

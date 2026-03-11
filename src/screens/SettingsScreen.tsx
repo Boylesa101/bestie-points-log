@@ -16,24 +16,32 @@ interface SettingsScreenProps {
   isActive: boolean
   onBack: () => void
   onRequestClearHistory: () => void
+  onExportData: () => void
+  onImportFile: (file: File) => void
   onRequestResetPoints: () => void
   onSave: (payload: SettingsPayload) => void
   presets: Presets
   profile: Profile
   rewards: Reward[]
   settings: AppSettings
+  transferError: string | null
+  transferMessage: string | null
 }
 
 export const SettingsScreen = ({
   isActive,
   onBack,
   onRequestClearHistory,
+  onExportData,
+  onImportFile,
   onRequestResetPoints,
   onSave,
   presets,
   profile,
   rewards,
   settings,
+  transferError,
+  transferMessage,
 }: SettingsScreenProps) => {
   const [childName, setChildName] = useState(profile.childName)
   const [photoDataUrl, setPhotoDataUrl] = useState(profile.photoDataUrl)
@@ -49,6 +57,7 @@ export const SettingsScreen = ({
   const [error, setError] = useState('')
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const importInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (!isActive) {
@@ -159,6 +168,20 @@ export const SettingsScreen = ({
     )
   }
 
+  const toggleRewardClaim = (id: string) => {
+    setRewardDrafts((currentRewards) =>
+      currentRewards.map((reward) =>
+        reward.id === id
+          ? {
+              ...reward,
+              claimedAt: reward.isClaimed ? null : new Date().toISOString(),
+              isClaimed: !reward.isClaimed,
+            }
+          : reward,
+      ),
+    )
+  }
+
   const addReward = () => {
     setRewardDrafts((currentRewards) => [
       ...currentRewards,
@@ -191,6 +214,16 @@ export const SettingsScreen = ({
       event.target.value = ''
       setIsProcessingPhoto(false)
     }
+  }
+
+  const handleImportPick = (event: ChangeEvent<HTMLInputElement>) => {
+    const [file] = event.target.files ?? []
+
+    if (file) {
+      onImportFile(file)
+    }
+
+    event.target.value = ''
   }
 
   const handleSave = () => {
@@ -636,16 +669,42 @@ export const SettingsScreen = ({
 
           <div className="editor-list">
             {rewardDrafts.map((reward) => (
-              <div className="editor-row" key={reward.id}>
+              <div
+                className={`editor-row editor-row--reward ${
+                  reward.isClaimed ? 'editor-row--reward-claimed' : ''
+                }`}
+                key={reward.id}
+              >
                 <div className="editor-row__top">
-                  <strong>{reward.title || 'Reward'}</strong>
-                  <button
-                    className="danger-button"
-                    onClick={() => removeReward(reward.id)}
-                    type="button"
-                  >
-                    Delete
-                  </button>
+                  <div className="reward-editor__title">
+                    <span className="reward-editor__sticker">
+                      {reward.isClaimed ? '🏅' : '🎁'}
+                    </span>
+                    <div>
+                      <strong>{reward.title || 'Reward'}</strong>
+                      <p className="field__help">
+                        {reward.isClaimed
+                          ? `Claimed${reward.claimedAt ? ` on ${new Date(reward.claimedAt).toLocaleDateString()}` : ''}`
+                          : 'Not claimed yet'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="preset-editor__actions">
+                    <button
+                      className="inline-button inline-button--tiny"
+                      onClick={() => toggleRewardClaim(reward.id)}
+                      type="button"
+                    >
+                      {reward.isClaimed ? 'Mark unclaimed' : 'Mark claimed'}
+                    </button>
+                    <button
+                      className="danger-button danger-button--tiny"
+                      onClick={() => removeReward(reward.id)}
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
 
                 <div className="field">
@@ -676,6 +735,12 @@ export const SettingsScreen = ({
                     value={reward.milestone}
                   />
                 </div>
+
+                <div className="reward-editor__status">
+                  <span className={`chip ${reward.isClaimed ? 'chip--claimed' : 'chip--reward'}`}>
+                    {reward.isClaimed ? 'Claimed sticker' : 'Ready to earn'}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -686,6 +751,35 @@ export const SettingsScreen = ({
             <h3>Storage tools</h3>
             <div className="chip">🧹 Careful</div>
           </div>
+
+          <div className="actions-row">
+            <button className="inline-button" onClick={onExportData} type="button">
+              Export backup
+            </button>
+            <button
+              className="inline-button"
+              onClick={() => importInputRef.current?.click()}
+              type="button"
+            >
+              Import backup
+            </button>
+          </div>
+
+          <input
+            accept="application/json,.json"
+            className="hidden-input"
+            onChange={handleImportPick}
+            ref={importInputRef}
+            type="file"
+          />
+
+          {transferMessage ? <p className="success-text">{transferMessage}</p> : null}
+          {transferError ? <p className="error-text">{transferError}</p> : null}
+
+          <p className="field__help">
+            Imports are checked before they replace the current local data, and you will be asked
+            to confirm before anything is overwritten.
+          </p>
 
           <div className="actions-row">
             <button className="danger-button" onClick={onRequestResetPoints} type="button">

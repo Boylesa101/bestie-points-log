@@ -58,6 +58,16 @@ export interface AppMetadata {
   schemaVersion: number
 }
 
+export interface AppDataSnapshot {
+  history: HistoryEntry[]
+  metadata: AppMetadata
+  presets: Presets
+  profile: Profile
+  rewards: Reward[]
+  settings: AppSettings
+  totalPoints: number
+}
+
 export interface PointsActionInput {
   amount: number
   reason: string

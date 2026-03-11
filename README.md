@@ -8,6 +8,8 @@ Bestie Points Log is a playful, mobile-first React PWA for quickly adding or rem
 - Tracks Bestie Points with preset win/lose buttons and a custom `TYPE POINTS` flow
 - Saves every activity entry locally with timestamp, reason, type, and points
 - Lets a parent edit the child profile, photo, presets, rewards, and storage tools
+- Lets a parent mark rewards claimed/unclaimed with local-only progress tracking
+- Supports export/import of the full local app data as a JSON backup file
 - Includes rewards progress, full activity history, installable PWA support, and offline caching
 
 ## Tech stack
@@ -59,6 +61,7 @@ The app stores separate keys for each part of the data model:
 - `bestie-points-log/presets`
 - `bestie-points-log/history`
 - `bestie-points-log/rewards`
+- `bestie-points-log/metadata`
 - `bestie-points-log/settings`
 
 On first run, the app seeds:
@@ -70,6 +73,13 @@ On first run, the app seeds:
 - demo rewards
 
 If saved data is missing or corrupt, the app restores safe defaults instead of crashing. Child photos are resized before saving to reduce `localStorage` usage.
+
+## Backup export/import
+
+- Backup export downloads a JSON file containing the full local app snapshot plus schema metadata.
+- Backup import stays local to the device and runs through the app sanitizers and migration logic before it is applied.
+- Import asks for confirmation before overwriting the current data on the device.
+- Invalid or corrupt JSON files are rejected safely and do not change current saved data.
 
 ## PWA notes
 
