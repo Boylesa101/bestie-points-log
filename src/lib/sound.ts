@@ -20,12 +20,6 @@ const SOUND_PLAYBACK_RATES: Record<SoundEffect, number> = {
   splash: 1,
 }
 
-const SOUND_CLIP_LENGTH_MS: Record<SoundEffect, number> = {
-  add: 1250,
-  remove: 1450,
-  splash: 1800,
-}
-
 let sharedAudioContext: AudioContext | null = null
 const sharedAudioElements: Partial<Record<SoundEffect, HTMLAudioElement>> = {}
 
@@ -114,12 +108,14 @@ const playAudioAsset = async (effect: SoundEffect) => {
     playbackAudio.playbackRate = SOUND_PLAYBACK_RATES[effect]
     playbackAudio.preload = 'auto'
     playbackAudio.currentTime = 0
-    await playbackAudio.play()
-    window.setTimeout(() => {
+    const cleanup = () => {
       playbackAudio.pause()
       playbackAudio.currentTime = 0
       playbackAudio.src = ''
-    }, SOUND_CLIP_LENGTH_MS[effect])
+    }
+    playbackAudio.addEventListener('ended', cleanup, { once: true })
+    playbackAudio.addEventListener('error', cleanup, { once: true })
+    await playbackAudio.play()
     return true
   } catch {
     return false
