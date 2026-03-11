@@ -58,6 +58,21 @@ export const playSplashSound = async (enabled: boolean) =>
 export const playRewardCelebrationSound = async (enabled: boolean) =>
   playSoundEffect('reward', enabled)
 
+export const playRewardRedeemSounds = async (enabled: boolean) => {
+  if (!enabled) {
+    return false
+  }
+
+  const results = await Promise.allSettled([
+    playSoundEffect('add', enabled),
+    playSoundEffect('reward', enabled),
+  ])
+
+  return results.some(
+    (result) => result.status === 'fulfilled' && result.value === true,
+  )
+}
+
 const playSoundEffect = async (
   effect: SoundEffect,
   enabled: boolean,

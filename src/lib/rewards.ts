@@ -35,8 +35,30 @@ export const getRewardCategoryIcon = (category: RewardCategory) => {
   return '⭐'
 }
 
+export const getRewardCost = (reward: Reward) =>
+  reward.costPoints > 0 ? reward.costPoints : reward.milestone
+
 export const isRewardUnlocked = (reward: Reward, totalPoints: number) =>
   totalPoints >= reward.milestone
+
+export const isRewardRedeemed = (reward: Reward) =>
+  reward.isClaimed || reward.claimedAt !== null || reward.redeemedAt !== null
+
+export const canRedeemReward = (reward: Reward, totalPoints: number) => {
+  if (isRewardRedeemed(reward)) {
+    return false
+  }
+
+  if (!isRewardUnlocked(reward, totalPoints)) {
+    return false
+  }
+
+  if (reward.redemptionType === 'unlock-only') {
+    return true
+  }
+
+  return totalPoints >= getRewardCost(reward)
+}
 
 export const isRewardReadyToReveal = (reward: Reward, totalPoints: number) =>
   isRewardUnlocked(reward, totalPoints) && !reward.hasCelebratedUnlock

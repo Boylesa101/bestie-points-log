@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { playRewardCelebrationSound } from '../lib/sound'
+import { playRewardCelebrationSound, playRewardRedeemSounds } from '../lib/sound'
 import { getRewardIcon } from '../lib/rewards'
-import type { Reward } from '../types/app'
+import type { Reward, RewardCelebrationMode } from '../types/app'
 
 interface RewardRevealOverlayProps {
+  mode: RewardCelebrationMode
   onClose: () => void
   onOpenParentDetails: () => void
   reward: Reward
@@ -11,6 +12,7 @@ interface RewardRevealOverlayProps {
 }
 
 export const RewardRevealOverlay = ({
+  mode,
   onClose,
   onOpenParentDetails,
   reward,
@@ -19,7 +21,11 @@ export const RewardRevealOverlay = ({
   const [showDetailsAction, setShowDetailsAction] = useState(false)
 
   useEffect(() => {
-    void playRewardCelebrationSound(soundEnabled)
+    if (mode === 'redeem') {
+      void playRewardRedeemSounds(soundEnabled)
+    } else {
+      void playRewardCelebrationSound(soundEnabled)
+    }
 
     const timerId = window.setTimeout(() => {
       setShowDetailsAction(true)
@@ -28,7 +34,7 @@ export const RewardRevealOverlay = ({
     return () => {
       window.clearTimeout(timerId)
     }
-  }, [soundEnabled])
+  }, [mode, soundEnabled])
 
   return (
     <div className="reward-reveal" role="dialog" aria-modal="true">
@@ -42,10 +48,14 @@ export const RewardRevealOverlay = ({
       </div>
 
       <div className="reward-reveal__panel">
-        <p className="reward-reveal__eyebrow">New reward unlocked</p>
-        <h2>WELL DONE!</h2>
+        <p className="reward-reveal__eyebrow">
+          {mode === 'redeem' ? 'Reward redeemed' : 'New reward unlocked'}
+        </p>
+        <h2>{mode === 'redeem' ? 'REWARD REDEEMED!' : 'WELL DONE!'}</h2>
         <p className="reward-reveal__copy">
-          You reached {reward.milestone} Bestie Points and unlocked {reward.title}.
+          {mode === 'redeem'
+            ? `${reward.title} is ready to enjoy.`
+            : `You reached ${reward.milestone} Bestie Points and unlocked ${reward.title}.`}
         </p>
 
         <article className="reward-reveal__card">
@@ -64,7 +74,7 @@ export const RewardRevealOverlay = ({
             </button>
           ) : null}
           <button className="setup-button setup-button--primary" onClick={onClose} type="button">
-            Keep going
+            {mode === 'redeem' ? 'Awesome!' : 'Keep going'}
           </button>
         </div>
       </div>

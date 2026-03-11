@@ -347,7 +347,7 @@ export const buildFamilySnapshot = async (
     }>()
 
   const rewardRows = await env.DB.prepare(
-    `SELECT id, title, category, icon, description, venue_template, venue_name, booking_url, discount_code, offer_source, eligibility_notes, last_checked_at, visible_before_unlock, unlocked_at, has_celebrated_unlock, points_required, claimed, claimed_at, sort_order, deleted_at, updated_at, updated_by_device_id
+    `SELECT id, title, category, icon, description, venue_template, venue_name, booking_url, discount_code, offer_source, eligibility_notes, last_checked_at, visible_before_unlock, unlocked_at, cost_points, redemption_type, redeemed_at, has_celebrated_unlock, points_required, claimed, claimed_at, sort_order, deleted_at, updated_at, updated_by_device_id
      FROM rewards
      WHERE family_id = ?1`,
   )
@@ -355,6 +355,7 @@ export const buildFamilySnapshot = async (
     .all<{
       booking_url: string | null
       category: string
+      cost_points: number
       claimed: number
       claimed_at: string | null
       deleted_at: string | null
@@ -367,6 +368,8 @@ export const buildFamilySnapshot = async (
       last_checked_at: string | null
       offer_source: string | null
       points_required: number
+      redeemed_at: string | null
+      redemption_type: string
       sort_order: number
       title: string
       unlocked_at: string | null
@@ -424,11 +427,14 @@ export const buildFamilySnapshot = async (
       reward.category === 'sticker'
         ? reward.category
         : 'sticker'
+    const redemptionType: 'spend-points' | 'unlock-only' =
+      reward.redemption_type === 'unlock-only' ? 'unlock-only' : 'spend-points'
 
     return {
       bookingUrl: reward.booking_url ?? '',
       category,
       claimedAt: reward.claimed_at,
+      costPoints: reward.cost_points,
       discountCode: reward.discount_code ?? '',
       deletedAt: reward.deleted_at,
       description: reward.description,
@@ -440,6 +446,8 @@ export const buildFamilySnapshot = async (
       lastCheckedAt: reward.last_checked_at,
       milestone: reward.points_required,
       offerSource: reward.offer_source ?? '',
+      redeemedAt: reward.redeemed_at,
+      redemptionType,
       sortOrder: reward.sort_order,
       title: reward.title,
       unlockedAt: reward.unlocked_at,
@@ -638,8 +646,8 @@ const replaceRewards = async (
   for (const reward of rewards) {
     await env.DB.prepare(
       `INSERT INTO rewards (
-        id, family_id, title, category, icon, description, venue_template, venue_name, booking_url, discount_code, offer_source, eligibility_notes, last_checked_at, visible_before_unlock, unlocked_at, has_celebrated_unlock, points_required, claimed, claimed_at, sort_order, deleted_at, updated_at, updated_by_device_id
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)
+        id, family_id, title, category, icon, description, venue_template, venue_name, booking_url, discount_code, offer_source, eligibility_notes, last_checked_at, visible_before_unlock, unlocked_at, cost_points, redemption_type, redeemed_at, has_celebrated_unlock, points_required, claimed, claimed_at, sort_order, deleted_at, updated_at, updated_by_device_id
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
         category = excluded.category,
@@ -654,6 +662,9 @@ const replaceRewards = async (
         last_checked_at = excluded.last_checked_at,
         visible_before_unlock = excluded.visible_before_unlock,
         unlocked_at = excluded.unlocked_at,
+        cost_points = excluded.cost_points,
+        redemption_type = excluded.redemption_type,
+        redeemed_at = excluded.redeemed_at,
         has_celebrated_unlock = excluded.has_celebrated_unlock,
         points_required = excluded.points_required,
         claimed = excluded.claimed,
@@ -679,6 +690,9 @@ const replaceRewards = async (
         reward.lastCheckedAt,
         reward.visibleBeforeUnlock ? 1 : 0,
         reward.unlockedAt,
+        reward.costPoints,
+        reward.redemptionType,
+        reward.redeemedAt,
         reward.hasCelebratedUnlock ? 1 : 0,
         reward.milestone,
         reward.isClaimed ? 1 : 0,

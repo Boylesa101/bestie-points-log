@@ -30,7 +30,7 @@ import {
   markQueueAttempt,
   mergeRemoteSnapshot,
 } from '../lib/sync/helpers'
-import { isRewardReadyToReveal } from '../lib/rewards'
+import { canRedeemReward, getRewardCost, isRewardReadyToReveal } from '../lib/rewards'
 import {
   readHistory,
   readMetadata,
@@ -60,6 +60,7 @@ import type {
   PointsActionInput,
   Presets,
   Profile,
+  RewardCelebration,
   Reward,
   SharedFamilySnapshot,
   SyncSession,
@@ -88,10 +89,11 @@ const updateLocalSyncSession = (
 
 export const useBestieApp = () => {
   const [appState, setAppState] = useState(loadInitialState)
-  const [activeRewardReveal, setActiveRewardReveal] = useState<Reward | null>(null)
+  const [activeRewardCelebration, setActiveRewardCelebration] = useState<RewardCelebration | null>(null)
   const [storageMessage, setStorageMessage] = useState<string | null>(null)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const appStateRef = useRef(appState)
+  const redeemingRewardIdsRef = useRef(new Set<string>())
   const syncInFlightRef = useRef(false)
   const syncRetryTimeoutRef = useRef<number | null>(null)
   const syncNowRef = useRef<() => Promise<boolean>>(async () => false)
@@ -605,12 +607,116 @@ export const useBestieApp = () => {
     updateReward(rewardId, (reward) => ({
       ...reward,
       claimedAt: isClaimed ? new Date().toISOString() : null,
+      redeemedAt: isClaimed ? new Date().toISOString() : null,
       isClaimed,
     }))
   }
 
+  const redeemReward = (rewardId: string) => {
+    if (redeemingRewardIdsRef.current.has(rewardId)) {
+      return {
+        ok: false as const,
+        message: 'That reward is already being redeemed.',
+      }
+    }
+
+    const reward = appStateRef.current.rewards.find((entry) => entry.id === rewardId)
+
+    if (!reward) {
+      return {
+        ok: false as const,
+        message: 'That reward could not be found.',
+      }
+    }
+
+    if (!canRedeemReward(reward, appStateRef.current.totalPoints)) {
+      return {
+        ok: false as const,
+        message: 'Not enough Bestie Points yet',
+      }
+    }
+
+    redeemingRewardIdsRef.current.add(rewardId)
+
+    try {
+      const redeemedAt = new Date().toISOString()
+      const redemptionCost = reward.redemptionType === 'unlock-only' ? 0 : getRewardCost(reward)
+      const actorName = appStateRef.current.settings.parentDisplayName || 'Parent'
+      const deviceId = appStateRef.current.syncSession.deviceId || 'local-device'
+      const historyEvent =
+        redemptionCost > 0
+          ? createPointEvent({
+              actorName,
+              amount: redemptionCost,
+              deviceId,
+              reason: `Redeemed ${reward.title} reward`,
+              type: 'remove',
+            })
+          : null
+
+      commit((currentState) => {
+        const nextHistory =
+          historyEvent !== null
+            ? [historyEvent, ...currentState.history].slice(0, 500)
+            : currentState.history
+        const nextRewards = sanitizeRewards(
+          currentState.rewards.map((entry) =>
+            entry.id === rewardId
+              ? {
+                  ...entry,
+                  claimedAt: redeemedAt,
+                  isClaimed: true,
+                  redeemedAt,
+                  unlockedAt: entry.unlockedAt ?? redeemedAt,
+                }
+              : entry,
+          ),
+        )
+        const nextQueue = currentState.syncSession.mode === 'synced'
+          ? [
+              ...currentState.mutationQueue,
+              ...(historyEvent ? [createQueuedPointMutation(historyEvent)] : []),
+              createQueuedRewardsMutation(nextRewards),
+            ]
+          : currentState.mutationQueue
+
+        return {
+          ...currentState,
+          history: nextHistory,
+          mutationQueue: sanitizeMutationQueue(nextQueue),
+          rewards: nextRewards,
+          totalPoints: deriveTotalPoints(nextHistory),
+        }
+      })
+
+      setActiveRewardCelebration({
+        mode: 'redeem',
+        reward: {
+          ...reward,
+          claimedAt: redeemedAt,
+          isClaimed: true,
+          redeemedAt,
+          unlockedAt: reward.unlockedAt ?? redeemedAt,
+        },
+      })
+
+      if (appStateRef.current.syncSession.mode === 'synced') {
+        void syncNow()
+      }
+
+      return {
+        ok: true as const,
+        rewardTitle: reward.title,
+      }
+    } finally {
+      window.setTimeout(() => {
+        redeemingRewardIdsRef.current.delete(rewardId)
+      }, 500)
+    }
+  }
+
   useEffect(() => {
-    if (activeRewardReveal) {
+    if (activeRewardCelebration) {
       return
     }
 
@@ -629,14 +735,17 @@ export const useBestieApp = () => {
       unlockedAt: rewardToReveal.unlockedAt ?? revealedAt,
     }
 
-    setActiveRewardReveal(nextReward)
+    setActiveRewardCelebration({
+      mode: 'unlock',
+      reward: nextReward,
+    })
     saveRewards(
       appState.rewards.map((reward) => (reward.id === rewardToReveal.id ? nextReward : reward)),
     )
-  }, [activeRewardReveal, appState.rewards, appState.totalPoints, saveRewards])
+  }, [activeRewardCelebration, appState.rewards, appState.totalPoints, saveRewards])
 
   return {
-    activeRewardReveal,
+    activeRewardCelebration,
     clearHistory: () =>
       commit((currentState) => {
         if (currentState.syncSession.mode === 'synced') {
@@ -714,8 +823,9 @@ export const useBestieApp = () => {
         metadata: sanitizeMetadata(currentState.metadata),
         settings: sanitizeSettings(nextSettings),
       })),
+    redeemReward,
     setRewardClaimed,
-    setRewardRevealDismissed: () => setActiveRewardReveal(null),
+    setRewardCelebrationDismissed: () => setActiveRewardCelebration(null),
     savePresets,
     saveProfile,
     saveRewards,

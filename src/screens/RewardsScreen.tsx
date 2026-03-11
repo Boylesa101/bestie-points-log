@@ -4,6 +4,7 @@ import type { Reward } from '../types/app'
 interface RewardsScreenProps {
   onBack: () => void
   onOpenParentDetails: (reward: Reward) => void
+  onRedeemReward: (reward: Reward) => void
   onOpenSettings: () => void
   rewards: Reward[]
   totalPoints: number
@@ -12,6 +13,7 @@ interface RewardsScreenProps {
 export const RewardsScreen = ({
   onBack,
   onOpenParentDetails,
+  onRedeemReward,
   onOpenSettings,
   rewards,
   totalPoints,
@@ -51,11 +53,12 @@ export const RewardsScreen = ({
             <span className="chip chip--reward">✨ {readyCount} ready now</span>
           </div>
           <p className="card__hint">
-            Rewards unlock when the milestone is reached. Parent details stay tucked away behind the reward panel.
+            Locked rewards stay locked, unlocked rewards can be redeemed, and redeemed rewards keep their badge.
           </p>
         </section>
 
         <RewardProgress
+          onRedeemReward={onRedeemReward}
           onOpenParentDetails={onOpenParentDetails}
           rewards={rewards}
           totalPoints={totalPoints}

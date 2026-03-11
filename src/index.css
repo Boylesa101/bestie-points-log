@@ -94,6 +94,12 @@ img {
   border-color: #bfdbfe;
 }
 
+.storage-banner--reward {
+  background: #fff7ed;
+  color: #b45309;
+  border-color: #fdba74;
+}
+
 .screen,
 .setup-screen {
   position: relative;
@@ -808,6 +814,19 @@ img {
 .reward-card__parent-link {
   margin-top: 12px;
   justify-self: start;
+}
+
+.reward-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.reward-card__redeem-button:disabled,
+.sheet-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .quick-link {

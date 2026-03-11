@@ -12,6 +12,7 @@ import type {
   Profile,
   QueuedMutation,
   RewardCategory,
+  RewardRedemptionType,
   Reward,
   SyncSession,
 } from '../types/app'
@@ -148,6 +149,9 @@ const normalizeRewardCategory = (value: unknown): RewardCategory => {
 
   return 'sticker'
 }
+
+const normalizeRewardRedemptionType = (value: unknown): RewardRedemptionType =>
+  value === 'unlock-only' ? 'unlock-only' : 'spend-points'
 
 export const normalizeTimestamp = (
   value: unknown,
@@ -309,8 +313,10 @@ export const sanitizeRewards = (value: unknown): Reward[] => {
       const description = normalizeText(reward.description, '', 140)
       const category = normalizeRewardCategory(reward.category)
       const claimedAt = normalizeTimestamp(reward.claimedAt, null)
+      const redeemedAt = normalizeTimestamp(reward.redeemedAt, claimedAt)
       const unlockedAt = normalizeTimestamp(reward.unlockedAt, null)
-      const isClaimed = normalizeBoolean(reward.isClaimed) || claimedAt !== null
+      const isClaimed =
+        normalizeBoolean(reward.isClaimed) || claimedAt !== null || redeemedAt !== null
 
       if (!title || milestone < 1) {
         return null
@@ -320,6 +326,7 @@ export const sanitizeRewards = (value: unknown): Reward[] => {
         bookingUrl: normalizeText(reward.bookingUrl, '', 240),
         category,
         claimedAt,
+        costPoints: normalizePositiveInt(reward.costPoints, milestone) || milestone,
         discountCode: normalizeText(reward.discountCode, '', 80),
         deletedAt: normalizeTimestamp(reward.deletedAt, null),
         description,
@@ -337,6 +344,8 @@ export const sanitizeRewards = (value: unknown): Reward[] => {
         lastCheckedAt: normalizeTimestamp(reward.lastCheckedAt, null),
         milestone,
         offerSource: normalizeText(reward.offerSource, '', 140),
+        redeemedAt,
+        redemptionType: normalizeRewardRedemptionType(reward.redemptionType),
         sortOrder: normalizePositiveInt(reward.sortOrder, index),
         title,
         unlockedAt,
@@ -593,6 +602,7 @@ function createDefaultReward(
     bookingUrl: '',
     category,
     claimedAt: null,
+    costPoints: milestone,
     discountCode: '',
     deletedAt: null,
     description,
@@ -604,6 +614,8 @@ function createDefaultReward(
     lastCheckedAt: null,
     milestone,
     offerSource: '',
+    redeemedAt: null,
+    redemptionType: 'spend-points',
     sortOrder,
     title,
     unlockedAt: null,

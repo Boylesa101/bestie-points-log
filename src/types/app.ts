@@ -3,7 +3,9 @@ export type HistorySyncStatus = 'error' | 'pending' | 'synced'
 export type MutationKind = 'point-event' | 'presets' | 'profile' | 'rewards'
 export type PointActionType = 'add' | 'remove'
 export type PresetSource = 'custom' | 'default'
+export type RewardCelebrationMode = 'redeem' | 'unlock'
 export type RewardCategory = 'day-out' | 'home' | 'sticker' | 'treat'
+export type RewardRedemptionType = 'spend-points' | 'unlock-only'
 export type SyncStatus = 'error' | 'local' | 'offline' | 'revoked' | 'synced' | 'syncing'
 
 export interface ParentLockSettings {
@@ -55,6 +57,7 @@ export interface Reward {
   bookingUrl: string
   category: RewardCategory
   claimedAt: string | null
+  costPoints: number
   discountCode: string
   deletedAt: string | null
   description: string
@@ -66,6 +69,8 @@ export interface Reward {
   lastCheckedAt: string | null
   milestone: number
   offerSource: string
+  redeemedAt: string | null
+  redemptionType: RewardRedemptionType
   sortOrder: number
   title: string
   unlockedAt: string | null
@@ -74,6 +79,11 @@ export interface Reward {
   venueName: string
   venueTemplate: string | null
   visibleBeforeUnlock: boolean
+}
+
+export interface RewardCelebration {
+  mode: RewardCelebrationMode
+  reward: Reward
 }
 
 export interface AppSettings {

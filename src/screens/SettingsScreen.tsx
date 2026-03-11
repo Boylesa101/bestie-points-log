@@ -192,8 +192,10 @@ export const SettingsScreen = ({
       | 'eligibilityNotes'
       | 'icon'
       | 'lastCheckedAt'
+      | 'costPoints'
       | 'milestone'
       | 'offerSource'
+      | 'redemptionType'
       | 'title'
       | 'venueName'
       | 'venueTemplate',
@@ -205,7 +207,7 @@ export const SettingsScreen = ({
           ? {
               ...reward,
               [field]:
-                field === 'milestone'
+                field === 'milestone' || field === 'costPoints'
                   ? Number.parseInt(value || '0', 10) || 0
                   : field === 'category'
                     ? (value as RewardCategory)
@@ -1051,6 +1053,28 @@ export const SettingsScreen = ({
                     }
                     placeholder={getRewardCategoryIcon(reward.category)}
                     value={reward.icon ?? ''}
+                    />
+                </div>
+
+                <div className="editor-row__fields">
+                  <select
+                    className="text-input"
+                    onChange={(event) =>
+                      updateReward(reward.id, 'redemptionType', event.target.value)
+                    }
+                    value={reward.redemptionType}
+                  >
+                    <option value="spend-points">Spend points to redeem</option>
+                    <option value="unlock-only">Unlock only</option>
+                  </select>
+                  <input
+                    className="number-input"
+                    min="1"
+                    onChange={(event) =>
+                      updateReward(reward.id, 'costPoints', event.target.value)
+                    }
+                    type="number"
+                    value={reward.costPoints}
                   />
                 </div>
 
@@ -1272,6 +1296,7 @@ const createRewardDraft = (): Reward => ({
   bookingUrl: '',
   category: 'day-out',
   claimedAt: null,
+  costPoints: 2000,
   deletedAt: null,
   description: 'A lovely reward to celebrate progress.',
   discountCode: '',
@@ -1283,6 +1308,8 @@ const createRewardDraft = (): Reward => ({
   lastCheckedAt: null,
   milestone: 2000,
   offerSource: '',
+  redeemedAt: null,
+  redemptionType: 'spend-points',
   sortOrder: Date.now(),
   title: 'New day out',
   unlockedAt: null,

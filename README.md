@@ -134,6 +134,14 @@ Unlock behavior:
 - unlocked and claimed are stored separately
 - the reveal does not replay on every app reopen once it has been celebrated
 
+Redeem behavior:
+
+- `locked`: not enough points yet
+- `unlocked`: enough points are available and the reward can be redeemed
+- `redeemed`: the parent has redeemed it and, for spendable rewards, the points were deducted
+- redeeming a spendable reward creates a history event and reduces the current total
+- unlock-only rewards can still be marked as redeemed without spending points if that redemption type is chosen
+
 The child-facing reveal stays playful and full-screen. Parent-only booking details are shown in a separate gated sheet so links, codes, and notes do not clutter the child view.
 
 ## Reward Celebration Audio
@@ -145,6 +153,8 @@ public/sounds/reward-celebration.mp3
 ```
 
 That file is treated as the trumpet / reward reveal sound.
+
+Successful redemption also plays the existing `yay.mp3` sound alongside the trumpet celebration sound.
 
 If the file is missing, invalid, or blocked by autoplay rules:
 

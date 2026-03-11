@@ -53,7 +53,7 @@ function App() {
     clearHistory,
     completeSetup,
     completeIntro,
-    activeRewardReveal,
+    activeRewardCelebration,
     exportSnapshot,
     generateSyncCode,
     history,
@@ -68,8 +68,9 @@ function App() {
     savePresets,
     saveProfile,
     saveRewards,
+    redeemReward,
     setRewardClaimed,
-    setRewardRevealDismissed,
+    setRewardCelebrationDismissed,
     settings,
     storageMessage,
     syncMessage,
@@ -87,6 +88,7 @@ function App() {
   const [isParentGateOpen, setIsParentGateOpen] = useState(false)
   const [parentGateTarget, setParentGateTarget] = useState<'reward-details' | 'settings' | null>(null)
   const [pointReaction, setPointReaction] = useState<PointReactionState | null>(null)
+  const [rewardMessage, setRewardMessage] = useState<string | null>(null)
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
   const [transferError, setTransferError] = useState<string | null>(null)
   const [transferMessage, setTransferMessage] = useState<string | null>(null)
@@ -197,6 +199,13 @@ function App() {
     }, 900)
   }
 
+  const showRewardMessage = (message: string) => {
+    setRewardMessage(message)
+    window.setTimeout(() => {
+      setRewardMessage((currentMessage) => (currentMessage === message ? null : currentMessage))
+    }, 2600)
+  }
+
   const shouldRequireParentPin =
     settings.parentLock.enabled &&
     settings.parentLock.isLocked &&
@@ -224,11 +233,11 @@ function App() {
   }
 
   const handleRequestOpenRewardDetailsFromReveal = () => {
-    if (!activeRewardReveal) {
+    if (!activeRewardCelebration) {
       return
     }
 
-    handleRequestOpenRewardDetails(activeRewardReveal)
+    handleRequestOpenRewardDetails(activeRewardCelebration.reward)
   }
 
   const handleParentGateSuccess = () => {
@@ -254,8 +263,33 @@ function App() {
         ...selectedReward,
         claimedAt: isClaimed ? new Date().toISOString() : null,
         isClaimed,
+        redeemedAt: isClaimed ? new Date().toISOString() : null,
       })
     }
+  }
+
+  const handleRequestRedeemReward = (reward: Reward) => {
+    setConfirmState({
+      action: () => {
+        const result = redeemReward(reward.id)
+
+        if (!result.ok) {
+          showRewardMessage(result.message)
+        } else {
+          setSelectedReward(null)
+          showRewardMessage(`${result.rewardTitle} redeemed!`)
+        }
+
+        setConfirmState(null)
+      },
+      confirmLabel: 'Redeem reward',
+      description:
+        reward.redemptionType === 'unlock-only'
+          ? `Redeem ${reward.title} now?`
+          : `Redeem ${reward.title} for ${reward.costPoints} Bestie Points?`,
+      title: `Redeem ${reward.title}?`,
+      tone: 'primary',
+    })
   }
 
   const recentEntries = history.slice(0, 3)
@@ -282,6 +316,12 @@ function App() {
           {syncMessage ? (
             <div className="storage-banner storage-banner--sync" role="status">
               {syncMessage}
+            </div>
+          ) : null}
+
+          {rewardMessage ? (
+            <div className="storage-banner storage-banner--reward" role="status">
+              {rewardMessage}
             </div>
           ) : null}
 
@@ -324,6 +364,7 @@ function App() {
             <RewardsScreen
               onBack={() => setScreen('home')}
               onOpenParentDetails={handleRequestOpenRewardDetails}
+              onRedeemReward={handleRequestRedeemReward}
               onOpenSettings={handleRequestOpenSettings}
               rewards={rewards}
               totalPoints={totalPoints}
@@ -393,16 +434,19 @@ function App() {
             <RewardDetailsSheet
               onClose={() => setSelectedReward(null)}
               onEditInSettings={handleEditRewardFromDetails}
+              onRedeem={handleRequestRedeemReward}
               onToggleClaimed={handleToggleRewardClaimed}
               reward={selectedReward}
+              totalPoints={totalPoints}
             />
           ) : null}
 
-          {activeRewardReveal ? (
+          {activeRewardCelebration ? (
             <RewardRevealOverlay
-              onClose={setRewardRevealDismissed}
+              mode={activeRewardCelebration.mode}
+              onClose={setRewardCelebrationDismissed}
               onOpenParentDetails={handleRequestOpenRewardDetailsFromReveal}
-              reward={activeRewardReveal}
+              reward={activeRewardCelebration.reward}
               soundEnabled={settings.soundEnabled}
             />
           ) : null}
