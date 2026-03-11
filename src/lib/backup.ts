@@ -3,10 +3,12 @@ import {
   STORAGE_SCHEMA_VERSION,
   sanitizeHistory,
   sanitizeMetadata,
+  sanitizeMutationQueue,
   sanitizePresets,
   sanitizeProfile,
   sanitizeRewards,
   sanitizeSettings,
+  sanitizeSyncSession,
   sanitizeTotalPoints,
 } from './defaults'
 import type { AppDataSnapshot } from '../types/app'
@@ -109,10 +111,12 @@ const sanitizeSnapshot = (value: unknown): AppDataSnapshot => {
       ...sanitizedMetadata,
       schemaVersion: sanitizedMetadata.schemaVersion || STORAGE_SCHEMA_VERSION,
     },
+    mutationQueue: sanitizeMutationQueue(recordValue.mutationQueue),
     presets: sanitizePresets(recordValue.presets),
     profile: sanitizeProfile(recordValue.profile),
     rewards: sanitizeRewards(recordValue.rewards),
     settings: sanitizeSettings(recordValue.settings),
+    syncSession: sanitizeSyncSession(recordValue.syncSession),
     totalPoints: sanitizeTotalPoints(recordValue.totalPoints),
   }
 }

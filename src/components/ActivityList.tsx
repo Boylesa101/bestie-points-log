@@ -34,7 +34,10 @@ export const ActivityList = ({
               <div className="activity-item__icon">{getEntryIcon(entry.reason, entry.type)}</div>
               <div>
                 <p className="activity-item__reason">{entry.reason}</p>
-                <p className="activity-item__time">{formatTimestamp(entry.timestamp)}</p>
+                <p className="activity-item__time">
+                  {entry.actorName ? `${entry.actorName} · ` : ''}
+                  {formatTimestamp(entry.timestamp)}
+                </p>
               </div>
             </div>
             <div

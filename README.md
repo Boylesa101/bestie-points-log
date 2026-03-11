@@ -1,113 +1,323 @@
 # Bestie Points Log
 
-Bestie Points Log is a playful, mobile-first React PWA for quickly adding or removing points for a child. It is designed for a parent using a modern Android phone, works offline after install, and stores everything locally in the browser with `localStorage`.
+Bestie Points Log is a cheerful mobile-first React app for tracking a child’s points. It now supports two modes from one shared codebase:
 
-## What the app does
+- `Local-only mode`: everything stays on one device in `localStorage`
+- `Synced family mode`: two parent devices share one child log through a Cloudflare Worker, D1, and R2, while each phone still keeps a local offline cache
 
-- Shows a cheerful splash screen and a polished phone-first home screen
-- Tracks Bestie Points with preset win/lose buttons and a custom `TYPE POINTS` flow
-- Saves every activity entry locally with timestamp, reason, type, and points
-- Lets a parent edit the child profile, photo, presets, rewards, and storage tools
-- Lets a parent mark rewards claimed/unclaimed with local-only progress tracking
-- Supports export/import of the full local app data as a JSON backup file
-- Includes rewards progress, full activity history, installable PWA support, and offline caching
+The frontend remains a PWA for Cloudflare Pages and stays ready for the existing Capacitor Android wrapper.
 
-## Tech stack
+## What The App Does
 
-- React 19
-- TypeScript
-- Vite
-- `vite-plugin-pwa`
-- `localStorage` only, with defensive parsing and default recovery
+- Cheerful splash screen and first-time setup flow
+- Home screen with win/lose presets, custom point entry, history, rewards, and settings
+- Parent-managed profile, presets, rewards, sounds, PIN lock, export/import, and device management
+- Local-first offline behavior with background sync when family mode is enabled
+- PWA install support for Android-class phones
 
-## Local development
+## Local-Only Vs Synced Family Mode
 
-Install dependencies:
+### Local-only mode
+
+- Uses only browser `localStorage`
+- No backend is required
+- Points, presets, rewards, history, and settings stay on one device
+
+### Synced family mode
+
+- First device creates the family log and gets a short pairing code
+- Second device joins with that pairing code
+- Shared across devices:
+  - child profile and photo
+  - total points
+  - point history
+  - presets
+  - rewards
+- Device-local:
+  - local mute preference
+  - local PIN lock
+  - local device name
+  - local cache and sync metadata
+
+## Sync Architecture
+
+### Frontend
+
+- React + TypeScript + Vite
+- Local-first app state with:
+  - local cache
+  - sync session metadata
+  - queued unsynced mutations
+- Point totals are derived from point events, not by last-write-wins on a single total field
+
+### Backend
+
+- Cloudflare Worker API in `worker/src`
+- D1 for shared relational data
+- R2 for synced child photos
+
+### Data model highlights
+
+- Point changes are append-only events with unique ids
+- Events are deduplicated by id on the server
+- Shared profile, presets, and rewards use last-write-wins with timestamps and soft deletes
+- Devices authenticate with a long random device token after pairing
+- Pairing codes are short, time-limited, and one-time use
+
+## Offline Queueing
+
+When family sync is enabled:
+
+- Taps still update the UI immediately on the current device
+- New changes are added to a local mutation queue
+- The app pushes queued changes when the network returns
+- The app pulls remote updates on app open, app resume, after local changes, and on a light foreground interval
+- A subtle sync status pill shows `Local only`, `Syncing`, `Synced`, `Offline`, or `Sync issue`
+
+## First Device Setup
+
+1. Open the app.
+2. Choose `Create new Bestie Points Log`.
+3. Add the child name and photo.
+4. Turn on `Use sync across two parent devices`.
+5. Enter the parent display name and device name.
+6. Continue to create the family.
+7. The app shows a sync code for the second phone.
+
+## Second Device Join
+
+1. Open the app on the second phone.
+2. Choose `Join with sync code`.
+3. Enter the sync code.
+4. Enter the parent display name and optional device name.
+5. Finish setup.
+
+The second phone pulls the current shared child profile, photo, points, history, presets, rewards, and linked-device state.
+
+## Linked Device Management
+
+In `Settings -> Family sync`, the primary device can:
+
+- create a fresh sync code
+- copy the current sync code
+- see linked devices and last sync time
+- revoke a linked device
+- manually trigger a sync
+
+Existing local-only users can migrate later from `Settings -> Family sync -> Upgrade this log to synced family mode`.
+
+## Backup Export / Import
+
+- Export downloads a JSON file with the full app snapshot and schema metadata
+- Import validates and sanitizes the file before it is applied
+- Import asks for confirmation before replacing current local data
+- Invalid or corrupt files are rejected safely
+
+If the imported backup contains sync session data, that device will restore the synced family link from the imported snapshot.
+
+## Project Structure
+
+```text
+src/
+  components/
+  hooks/
+  lib/
+    api/
+    sync/
+  screens/
+  types/
+
+worker/
+  src/
+    lib/
+    index.ts
+    schema.sql
+  wrangler.toml
+```
+
+## Install Dependencies
 
 ```bash
 npm install
 ```
 
-Run the app locally:
+## Local Web Development
+
+Run the Vite frontend:
 
 ```bash
 npm run dev
 ```
 
-The Vite dev server will print the local URL, usually `http://localhost:5173`.
+Optional local frontend env for synced mode:
 
-## Production build
+```bash
+cp .env.example .env.local
+```
 
-Create the production build:
+Then set:
+
+```bash
+VITE_SYNC_API_BASE_URL=http://127.0.0.1:8787
+```
+
+## Local Worker Development
+
+Before local worker dev, update `worker/wrangler.toml` with your real D1 database id, bucket name, and allowed origin, or create local equivalents.
+
+Apply the schema:
+
+```bash
+npx wrangler d1 execute bestie-points-log --file=worker/src/schema.sql --config worker/wrangler.toml
+```
+
+Run the Worker locally:
+
+```bash
+npm run worker:dev
+```
+
+The frontend can then talk to the Worker using `VITE_SYNC_API_BASE_URL=http://127.0.0.1:8787`.
+
+## Production Build
+
+Build the frontend:
 
 ```bash
 npm run build
 ```
 
-Preview the built app locally:
+Preview the built frontend:
 
 ```bash
 npm run preview
 ```
 
-The production output is written to `dist/`.
+Output directory:
 
-## Android with Capacitor
+```text
+dist/
+```
 
-The project now supports two publish paths from the same codebase:
+## Validation
 
-- Web PWA build for Cloudflare Pages
-- Native Android wrapper via Capacitor
+Run all checks:
 
-### Android local workflow
+```bash
+npm run build
+npm run lint
+npm run worker:check
+```
 
-Build the web app for Capacitor:
+## Android With Capacitor
+
+Build the frontend for Capacitor:
 
 ```bash
 npm run build
 ```
 
-Sync the built web app into the Android project:
+Sync into the Android project:
 
 ```bash
 npm run cap:sync
 ```
 
-Or run both steps together:
+Or run both together:
 
 ```bash
 npm run android:sync
 ```
 
-Open the Android project in Android Studio:
+Open Android Studio:
 
 ```bash
 npm run cap:open
 ```
 
-You can also open the native project directly from Android Studio at:
+Native project path:
 
 ```text
 android/
 ```
 
-### Android Studio build output
-
-Typical Android Studio outputs will be written under:
+Typical Android Studio build outputs:
 
 ```text
 android/app/build/outputs/
 ```
 
-Common locations include:
+## Cloudflare Worker Setup
 
-- Debug APK: `android/app/build/outputs/apk/debug/`
-- Release APK: `android/app/build/outputs/apk/release/`
-- Release App Bundle: `android/app/build/outputs/bundle/release/`
+### 1. Create D1
 
-## How localStorage works
+```bash
+npx wrangler d1 create bestie-points-log
+```
 
-The app stores separate keys for each part of the data model:
+Copy the returned database id into `worker/wrangler.toml`.
+
+### 2. Create R2 bucket
+
+```bash
+npx wrangler r2 bucket create bestie-points-log-photos
+```
+
+Update the bucket name in `worker/wrangler.toml` if you use a different one.
+
+### 3. Apply the schema
+
+```bash
+npx wrangler d1 execute bestie-points-log --file=worker/src/schema.sql --config worker/wrangler.toml
+```
+
+### 4. Set Worker vars
+
+In `worker/wrangler.toml`, set:
+
+- `PAIR_CODE_TTL_MINUTES`
+- `ALLOWED_ORIGIN` via dashboard secret/var or local config
+
+Recommended `ALLOWED_ORIGIN` values:
+
+- your Pages production URL
+- your Pages preview URL pattern or custom domain
+
+### 5. Deploy the Worker
+
+```bash
+npx wrangler deploy --config worker/wrangler.toml
+```
+
+## Cloudflare Pages Setup
+
+### Pages build settings
+
+- Framework preset: `Vite`
+- Build command: `npm run build`
+- Output directory: `dist`
+
+### Pages environment variables
+
+Set this on Pages:
+
+```bash
+VITE_SYNC_API_BASE_URL=https://<your-worker-subdomain>.workers.dev
+```
+
+If you later put the Worker behind the same custom domain under `/api`, you can instead point the variable at that API origin.
+
+### Pages deployment steps
+
+1. Push the repository to GitHub.
+2. Create a Cloudflare Pages project from the repo.
+3. Use the Pages build settings above.
+4. Add `VITE_SYNC_API_BASE_URL`.
+5. Deploy.
+
+## Data Storage Keys
+
+Local device storage still uses separate `localStorage` keys:
 
 - `bestie-points-log/profile`
 - `bestie-points-log/total-points`
@@ -116,68 +326,18 @@ The app stores separate keys for each part of the data model:
 - `bestie-points-log/rewards`
 - `bestie-points-log/metadata`
 - `bestie-points-log/settings`
+- `bestie-points-log/sync-session`
+- `bestie-points-log/mutation-queue`
 
-On first run, the app seeds:
+## Migration Notes
 
-- child name: `Henry`
-- total points: `0`
-- default add presets
-- default remove presets
-- demo rewards
+- Existing local-only installs keep working
+- Older local snapshots are sanitized and upgraded automatically
+- A parent can migrate an existing local-only log to synced family mode from settings
+- Migration uploads the current profile, child photo, presets, rewards, and point history to the shared backend
 
-If saved data is missing or corrupt, the app restores safe defaults instead of crashing. Child photos are resized before saving to reduce `localStorage` usage.
+## Current Limitations / Follow-Up Ideas
 
-## Backup export/import
-
-- Backup export downloads a JSON file containing the full local app snapshot plus schema metadata.
-- Backup import stays local to the device and runs through the app sanitizers and migration logic before it is applied.
-- Import asks for confirmation before overwriting the current data on the device.
-- Invalid or corrupt JSON files are rejected safely and do not change current saved data.
-
-## PWA notes
-
-- Installable on Android via the browser install prompt or browser menu
-- Manifest is generated by `vite-plugin-pwa`
-- Service worker is generated at build time
-- Works offline after the app has been loaded once
-- Uses static hosting only, with no backend APIs
-- Capacitor support does not replace the PWA build; Cloudflare Pages continues to use the normal Vite `dist/` output
-
-## Deploy to Cloudflare Pages
-
-This is a static Vite app, so Cloudflare Pages can host it directly without Workers.
-
-### Cloudflare Pages settings
-
-- Framework preset: `Vite`
-- Build command: `npm run build`
-- Build output directory: `dist`
-
-### Deployment steps
-
-1. Push this repository to GitHub.
-2. In Cloudflare Pages, create a new project from that GitHub repository.
-3. Use the settings above.
-4. Deploy.
-
-Because the app uses screen state instead of URL routing, refreshes and deep-link issues do not apply.
-
-## Project structure
-
-```text
-src/
-  components/
-  hooks/
-  lib/
-  screens/
-  types/
-```
-
-## Validation
-
-The project is expected to pass:
-
-```bash
-npm run build
-npm run lint
-```
+- Pair-code redemption is designed as one-time use and validated server-side, but could be hardened further with a stricter transactional flow
+- Live push updates are interval/pull based today; a Durable Object or push channel could later make sync feel even more live
+- Device name and parent display name updates are currently centered on setup and local settings; a dedicated remote device-profile edit flow would be a useful follow-up

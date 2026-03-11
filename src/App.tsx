@@ -52,11 +52,14 @@ function App() {
     completeSetup,
     completeIntro,
     exportSnapshot,
+    generateSyncCode,
     history,
     importSnapshot,
+    joinSyncedFamily,
     presets,
     profile,
     resetPoints,
+    revokeLinkedDevice,
     rewards,
     saveAppSettings,
     savePresets,
@@ -64,8 +67,13 @@ function App() {
     saveRewards,
     settings,
     storageMessage,
+    syncMessage,
+    syncNow,
+    syncSession,
     totalPoints,
     trackPoints,
+    upgradeToSyncedFamily,
+    createSyncedFamily,
   } = useBestieApp()
   const [screen, setScreen] = useState<Screen>('home')
   const [showSplash, setShowSplash] = useState(true)
@@ -217,6 +225,12 @@ function App() {
             </div>
           ) : null}
 
+          {syncMessage ? (
+            <div className="storage-banner storage-banner--sync" role="status">
+              {syncMessage}
+            </div>
+          ) : null}
+
           {screen === 'home' ? (
             <HomeScreen
               history={recentEntries}
@@ -228,16 +242,22 @@ function App() {
               presets={presets}
               profile={profile}
               rewards={rewards}
+              syncSession={syncSession}
               totalPoints={totalPoints}
             />
           ) : null}
 
           {screen === 'setup' ? (
             <SetupScreen
-              onComplete={(profile) => {
+              defaultDeviceName={settings.deviceName}
+              defaultParentName={settings.parentDisplayName}
+              onCompleteLocal={(profile) => {
                 completeSetup(profile)
                 setScreen('home')
               }}
+              onCreateSynced={createSyncedFamily}
+              onFinishSyncedSetup={() => setScreen('home')}
+              onJoinSynced={joinSyncedFamily}
               profile={profile}
             />
           ) : null}
@@ -294,6 +314,11 @@ function App() {
               profile={profile}
               rewards={rewards}
               settings={settings}
+              syncSession={syncSession}
+              onCreateSyncCode={generateSyncCode}
+              onRevokeLinkedDevice={revokeLinkedDevice}
+              onSyncNow={syncNow}
+              onUpgradeToSync={upgradeToSyncedFamily}
               transferError={transferError}
               transferMessage={transferMessage}
             />

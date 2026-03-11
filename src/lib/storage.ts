@@ -4,13 +4,16 @@ import {
   DEFAULT_PROFILE,
   DEFAULT_REWARDS,
   DEFAULT_SETTINGS,
+  DEFAULT_SYNC_SESSION,
   DEFAULT_TOTAL_POINTS,
   sanitizeHistory,
   sanitizeMetadata,
+  sanitizeMutationQueue,
   sanitizePresets,
   sanitizeProfile,
   sanitizeRewards,
   sanitizeSettings,
+  sanitizeSyncSession,
   sanitizeTotalPoints,
 } from './defaults'
 import type {
@@ -19,20 +22,24 @@ import type {
   HistoryEntry,
   Presets,
   Profile,
+  QueuedMutation,
   Reward,
+  SyncSession,
 } from '../types/app'
 
 const STORAGE_KEYS = {
   history: 'bestie-points-log/history',
   metadata: 'bestie-points-log/metadata',
+  mutationQueue: 'bestie-points-log/mutation-queue',
   presets: 'bestie-points-log/presets',
   profile: 'bestie-points-log/profile',
   rewards: 'bestie-points-log/rewards',
   settings: 'bestie-points-log/settings',
+  syncSession: 'bestie-points-log/sync-session',
   totalPoints: 'bestie-points-log/total-points',
 } as const
 
-interface StorageResult {
+export interface StorageResult {
   message?: string
   ok: boolean
 }
@@ -129,3 +136,15 @@ export const readSettings = () =>
 
 export const writeSettings = (settings: AppSettings) =>
   writeValue(STORAGE_KEYS.settings, sanitizeSettings(settings))
+
+export const readSyncSession = () =>
+  readValue(STORAGE_KEYS.syncSession, DEFAULT_SYNC_SESSION, sanitizeSyncSession)
+
+export const writeSyncSession = (syncSession: SyncSession) =>
+  writeValue(STORAGE_KEYS.syncSession, sanitizeSyncSession(syncSession))
+
+export const readMutationQueue = () =>
+  readValue(STORAGE_KEYS.mutationQueue, [] as QueuedMutation[], sanitizeMutationQueue)
+
+export const writeMutationQueue = (mutationQueue: QueuedMutation[]) =>
+  writeValue(STORAGE_KEYS.mutationQueue, sanitizeMutationQueue(mutationQueue))

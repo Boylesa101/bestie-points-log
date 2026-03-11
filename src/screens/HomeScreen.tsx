@@ -1,7 +1,14 @@
 import { ActivityList } from '../components/ActivityList'
 import { ChildHeader } from '../components/ChildHeader'
 import { PresetGrid } from '../components/PresetGrid'
-import type { HistoryEntry, PointActionType, Presets, Profile, Reward } from '../types/app'
+import type {
+  HistoryEntry,
+  PointActionType,
+  Presets,
+  Profile,
+  Reward,
+  SyncSession,
+} from '../types/app'
 
 interface HomeScreenProps {
   history: HistoryEntry[]
@@ -13,6 +20,7 @@ interface HomeScreenProps {
   presets: Presets
   profile: Profile
   rewards: Reward[]
+  syncSession: SyncSession
   totalPoints: number
 }
 
@@ -26,6 +34,7 @@ export const HomeScreen = ({
   presets,
   profile,
   rewards,
+  syncSession,
   totalPoints,
 }: HomeScreenProps) => {
   const nextReward = rewards.find((reward) => reward.milestone > totalPoints)
@@ -45,6 +54,7 @@ export const HomeScreen = ({
         <ChildHeader
           onOpenSettings={onOpenSettings}
           profile={profile}
+          syncSession={syncSession}
           totalPoints={totalPoints}
         />
 

@@ -12,7 +12,7 @@ export const HistoryScreen = ({ entries, onBack }: HistoryScreenProps) => (
       <div>
         <p className="subscreen__eyebrow">Log book</p>
         <h1 className="subscreen__title">All activity</h1>
-        <p className="subscreen__lead">Every Bestie Points action saved on this device.</p>
+        <p className="subscreen__lead">Every Bestie Points action, with who made the change and when.</p>
       </div>
 
       <button className="back-button" onClick={onBack} type="button">

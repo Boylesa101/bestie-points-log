@@ -3,7 +3,17 @@ import type { ChangeEvent } from 'react'
 import { DEFAULT_PROFILE, sanitizePresets, sanitizeProfile, sanitizeRewards } from '../lib/defaults'
 import { getPresetIcon } from '../lib/icons'
 import { prepareImageDataUrl } from '../lib/images'
-import type { AppSettings, PresetAction, Presets, Profile, Reward } from '../types/app'
+import { LinkedDevicesList } from '../components/LinkedDevicesList'
+import { SyncStatus } from '../components/SyncStatus'
+import type {
+  AppSettings,
+  PairingCodeState,
+  PresetAction,
+  Presets,
+  Profile,
+  Reward,
+  SyncSession,
+} from '../types/app'
 
 interface SettingsPayload {
   presets: Presets
@@ -15,15 +25,20 @@ interface SettingsPayload {
 interface SettingsScreenProps {
   isActive: boolean
   onBack: () => void
+  onCreateSyncCode: () => Promise<PairingCodeState>
   onRequestClearHistory: () => void
   onExportData: () => void
   onImportFile: (file: File) => void
   onRequestResetPoints: () => void
+  onRevokeLinkedDevice: (deviceId: string) => Promise<void>
   onSave: (payload: SettingsPayload) => void
+  onSyncNow: () => Promise<boolean>
+  onUpgradeToSync: (payload: SettingsPayload) => Promise<PairingCodeState>
   presets: Presets
   profile: Profile
   rewards: Reward[]
   settings: AppSettings
+  syncSession: SyncSession
   transferError: string | null
   transferMessage: string | null
 }
@@ -31,15 +46,20 @@ interface SettingsScreenProps {
 export const SettingsScreen = ({
   isActive,
   onBack,
+  onCreateSyncCode,
   onRequestClearHistory,
   onExportData,
   onImportFile,
   onRequestResetPoints,
+  onRevokeLinkedDevice,
   onSave,
+  onSyncNow,
+  onUpgradeToSync,
   presets,
   profile,
   rewards,
   settings,
+  syncSession,
   transferError,
   transferMessage,
 }: SettingsScreenProps) => {
@@ -50,12 +70,19 @@ export const SettingsScreen = ({
   const [rewardDrafts, setRewardDrafts] = useState(rewards)
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled)
   const [lockActive, setLockActive] = useState(settings.parentLock.isLocked)
+  const [parentDisplayName, setParentDisplayName] = useState(settings.parentDisplayName)
+  const [deviceName, setDeviceName] = useState(settings.deviceName)
   const [pinDraft, setPinDraft] = useState('')
   const [confirmPinDraft, setConfirmPinDraft] = useState('')
   const [isChangingPin, setIsChangingPin] = useState(!settings.parentLock.pin)
   const [shouldRemovePin, setShouldRemovePin] = useState(false)
   const [error, setError] = useState('')
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false)
+  const [isWorkingOnSync, setIsWorkingOnSync] = useState(false)
+  const [syncNotice, setSyncNotice] = useState<string | null>(null)
+  const [activePairingCode, setActivePairingCode] = useState<PairingCodeState | null>(
+    syncSession.activePairingCode,
+  )
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const importInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -71,13 +98,18 @@ export const SettingsScreen = ({
     setRewardDrafts(rewards)
     setSoundEnabled(settings.soundEnabled)
     setLockActive(settings.parentLock.isLocked)
+    setParentDisplayName(settings.parentDisplayName)
+    setDeviceName(settings.deviceName)
     setPinDraft('')
     setConfirmPinDraft('')
     setIsChangingPin(!settings.parentLock.pin)
     setShouldRemovePin(false)
     setError('')
     setIsProcessingPhoto(false)
-  }, [isActive, presets, profile, rewards, settings])
+    setIsWorkingOnSync(false)
+    setSyncNotice(null)
+    setActivePairingCode(syncSession.activePairingCode)
+  }, [isActive, presets, profile, rewards, settings, syncSession.activePairingCode])
 
   const updatePreset = (
     group: 'add' | 'remove',
@@ -226,10 +258,13 @@ export const SettingsScreen = ({
     event.target.value = ''
   }
 
-  const handleSave = () => {
+  const buildNextPayload = (): SettingsPayload | null => {
     const nextProfile = sanitizeProfile({
       childName: childName.trim() || DEFAULT_PROFILE.childName,
       photoDataUrl,
+      photoKey: profile.photoKey,
+      updatedAt: profile.updatedAt,
+      updatedByDeviceId: profile.updatedByDeviceId,
     })
     const nextPresets = sanitizePresets({
       add: addPresets,
@@ -243,18 +278,18 @@ export const SettingsScreen = ({
     if (wantsNewPin || hasDraftPin) {
       if (!/^\d{4,8}$/.test(pinDraft.trim())) {
         setError('Use a parent PIN with 4 to 8 digits.')
-        return
+        return null
       }
 
       if (pinDraft.trim() !== confirmPinDraft.trim()) {
         setError('The new PIN and confirm PIN must match.')
-        return
+        return null
       }
     }
 
     if (!nextProfile.childName.trim()) {
       setError('Add a child name before saving.')
-      return
+      return null
     }
 
     const nextPin =
@@ -266,6 +301,8 @@ export const SettingsScreen = ({
 
     const nextSettings: AppSettings = {
       ...settings,
+      deviceName: deviceName.trim(),
+      parentDisplayName: parentDisplayName.trim() || 'Parent',
       parentLock: {
         enabled: Boolean(nextPin),
         isLocked: nextPin ? lockActive : false,
@@ -274,12 +311,114 @@ export const SettingsScreen = ({
       soundEnabled,
     }
 
-    onSave({
+    setError('')
+
+    return {
       presets: nextPresets,
       profile: nextProfile,
       rewards: nextRewards,
       settings: nextSettings,
-    })
+    }
+  }
+
+  const handleSave = () => {
+    const payload = buildNextPayload()
+
+    if (!payload) {
+      return
+    }
+
+    onSave(payload)
+  }
+
+  const handleUpgradeToSync = async () => {
+    const payload = buildNextPayload()
+
+    if (!payload) {
+      return
+    }
+
+    setIsWorkingOnSync(true)
+    setSyncNotice(null)
+
+    try {
+      const pairingCode = await onUpgradeToSync(payload)
+      setActivePairingCode(pairingCode)
+      setSyncNotice('Family sync is ready. Use this code on the second phone to join.')
+    } catch (syncError) {
+      setError(
+        syncError instanceof Error
+          ? syncError.message
+          : 'Family sync could not be started on this device.',
+      )
+    } finally {
+      setIsWorkingOnSync(false)
+    }
+  }
+
+  const handleCreateSyncCode = async () => {
+    setIsWorkingOnSync(true)
+    setError('')
+    setSyncNotice(null)
+
+    try {
+      const pairingCode = await onCreateSyncCode()
+      setActivePairingCode(pairingCode)
+      setSyncNotice('A fresh sync code is ready for the next parent phone.')
+    } catch (syncError) {
+      setError(
+        syncError instanceof Error
+          ? syncError.message
+          : 'A new sync code could not be created right now.',
+      )
+    } finally {
+      setIsWorkingOnSync(false)
+    }
+  }
+
+  const handleCopyCode = async () => {
+    if (!activePairingCode) {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(activePairingCode.code)
+      setSyncNotice('Sync code copied to the clipboard.')
+    } catch {
+      setSyncNotice(`Sync code: ${activePairingCode.code}`)
+    }
+  }
+
+  const handleSyncNow = async () => {
+    setIsWorkingOnSync(true)
+    setError('')
+
+    try {
+      const didSync = await onSyncNow()
+      setSyncNotice(didSync ? 'Shared family data checked and updated.' : 'Sync is waiting for a connection.')
+    } catch (syncError) {
+      setError(
+        syncError instanceof Error ? syncError.message : 'Sync could not finish right now.',
+      )
+    } finally {
+      setIsWorkingOnSync(false)
+    }
+  }
+
+  const handleRevokeDevice = async (deviceId: string) => {
+    setIsWorkingOnSync(true)
+    setError('')
+
+    try {
+      await onRevokeLinkedDevice(deviceId)
+      setSyncNotice('That device has been revoked and can no longer sync.')
+    } catch (syncError) {
+      setError(
+        syncError instanceof Error ? syncError.message : 'That device could not be revoked.',
+      )
+    } finally {
+      setIsWorkingOnSync(false)
+    }
   }
 
   return (
@@ -360,8 +499,38 @@ export const SettingsScreen = ({
 
         <section className="settings-card">
           <div className="settings-card__header">
-            <h3>Parent lock & sounds</h3>
-            <div className="chip">🔐 Local only</div>
+            <h3>This device</h3>
+            <div className="chip">📱 Parent side</div>
+          </div>
+
+          <div className="editor-list">
+            <label className="field">
+              <span className="field-label">Parent display name</span>
+              <input
+                className="text-input"
+                maxLength={40}
+                onChange={(event) => setParentDisplayName(event.target.value)}
+                placeholder="Mum"
+                value={parentDisplayName}
+              />
+              <p className="field__help">
+                Used on new activity from this phone, like “Dad added +50”.
+              </p>
+            </label>
+
+            <label className="field">
+              <span className="field-label">Device name</span>
+              <input
+                className="text-input"
+                maxLength={40}
+                onChange={(event) => setDeviceName(event.target.value)}
+                placeholder="Dad&apos;s phone"
+                value={deviceName}
+              />
+              <p className="field__help">
+                Helps you tell linked devices apart later.
+              </p>
+            </label>
           </div>
 
           <label className="toggle-row toggle-row--card">
@@ -467,6 +636,109 @@ export const SettingsScreen = ({
             Forgot the PIN later? Because the app is local-only, the recovery path is clearing this
             app&apos;s stored browser data on that device.
           </p>
+        </section>
+
+        <section className="settings-card">
+          <div className="settings-card__header">
+            <h3>Family sync</h3>
+            <div className="chip">
+              {syncSession.mode === 'synced' ? '☁️ Shared family' : '🏠 Local only'}
+            </div>
+          </div>
+
+          <div className="sync-settings">
+            <SyncStatus syncSession={syncSession} />
+            <p className="field__help">
+              {syncSession.mode === 'synced'
+                ? 'Shared items: child profile, presets, rewards, activity history, and total points. Device-only items stay on this phone.'
+                : 'Upgrade this log when you want two parent phones to share the same child profile, points, history, presets, and rewards.'}
+            </p>
+
+            {syncSession.mode === 'synced' ? (
+              <>
+                <div className="actions-row">
+                  <button
+                    className="inline-button"
+                    disabled={isWorkingOnSync}
+                    onClick={() => {
+                      void handleSyncNow()
+                    }}
+                    type="button"
+                  >
+                    Sync now
+                  </button>
+                  <button
+                    className="inline-button"
+                    disabled={isWorkingOnSync}
+                    onClick={() => {
+                      void handleCreateSyncCode()
+                    }}
+                    type="button"
+                  >
+                    New sync code
+                  </button>
+                </div>
+
+                {activePairingCode ? (
+                  <div className="pair-code-card">
+                    <p className="field-label">Current join code</p>
+                    <div className="pair-code-card__code">{activePairingCode.code}</div>
+                    <p className="field__help">
+                      Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
+                    </p>
+                    <button className="soft-button" onClick={() => void handleCopyCode()} type="button">
+                      Copy code
+                    </button>
+                  </div>
+                ) : null}
+
+                <div className="settings-card__header settings-card__header--subsection">
+                  <h3>Linked devices</h3>
+                  <div className="chip">👨‍👩‍👧‍👦 Family</div>
+                </div>
+
+                <LinkedDevicesList
+                  devices={syncSession.linkedDevices}
+                  onRevoke={(deviceId) => {
+                    void handleRevokeDevice(deviceId)
+                  }}
+                  primaryDeviceId={syncSession.primaryDeviceId}
+                />
+              </>
+            ) : (
+              <div className="sync-upgrade-card">
+                <p className="field__help">
+                  Save your latest profile changes and create a family log in the cloud for the
+                  second phone to join with a short code.
+                </p>
+                <button
+                  className="inline-button"
+                  disabled={isWorkingOnSync}
+                  onClick={() => {
+                    void handleUpgradeToSync()
+                  }}
+                  type="button"
+                >
+                  Upgrade this log to synced family mode
+                </button>
+
+                {activePairingCode ? (
+                  <div className="pair-code-card">
+                    <p className="field-label">Join code</p>
+                    <div className="pair-code-card__code">{activePairingCode.code}</div>
+                    <p className="field__help">
+                      Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
+                    </p>
+                    <button className="soft-button" onClick={() => void handleCopyCode()} type="button">
+                      Copy code
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {syncNotice ? <p className="success-text">{syncNotice}</p> : null}
+          </div>
         </section>
 
         <section className="settings-card">
@@ -785,12 +1057,19 @@ export const SettingsScreen = ({
             <button className="danger-button" onClick={onRequestResetPoints} type="button">
               Reset points
             </button>
-            <button className="danger-button" onClick={onRequestClearHistory} type="button">
+            <button
+              className="danger-button"
+              disabled={syncSession.mode === 'synced'}
+              onClick={onRequestClearHistory}
+              type="button"
+            >
               Clear history
             </button>
           </div>
           <p className="field__help">
-            Destructive actions are protected with one more confirmation step.
+            {syncSession.mode === 'synced'
+              ? 'Reset points still adds a shared parent reset event. Shared history stays protected and cannot be cleared from one device.'
+              : 'Destructive actions are protected with one more confirmation step.'}
           </p>
         </section>
 
@@ -808,12 +1087,15 @@ const createPresetDraft = (
   group: 'add' | 'remove',
   index: number,
 ): PresetAction => ({
+  deletedAt: null,
   id: `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   icon: null,
   label: group === 'add' ? 'New win' : 'New lose',
   points: 50,
   sortOrder: index,
   source: 'custom',
+  updatedAt: new Date().toISOString(),
+  updatedByDeviceId: null,
   visibleOnHome: true,
 })
 
@@ -825,9 +1107,13 @@ const reorderPresets = (presets: PresetAction[]) =>
 
 const createRewardDraft = (): Reward => ({
   claimedAt: null,
+  deletedAt: null,
   description: 'A lovely reward to celebrate progress.',
   id: `reward-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   isClaimed: false,
   milestone: 2000,
+  sortOrder: Date.now(),
   title: 'New reward',
+  updatedAt: new Date().toISOString(),
+  updatedByDeviceId: null,
 })

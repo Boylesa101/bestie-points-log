@@ -1,0 +1,15 @@
+name = "bestie-points-log-sync"
+main = "src/index.ts"
+compatibility_date = "2026-03-11"
+
+[vars]
+PAIR_CODE_TTL_MINUTES = "20"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bestie-points-log"
+database_id = "replace-with-your-d1-database-id"
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "bestie-points-log-photos"

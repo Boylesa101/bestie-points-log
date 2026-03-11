@@ -1,14 +1,17 @@
-import type { Profile } from '../types/app'
+import { SyncStatus } from './SyncStatus'
+import type { Profile, SyncSession } from '../types/app'
 
 interface ChildHeaderProps {
   onOpenSettings: () => void
   profile: Profile
+  syncSession: SyncSession
   totalPoints: number
 }
 
 export const ChildHeader = ({
   onOpenSettings,
   profile,
+  syncSession,
   totalPoints,
 }: ChildHeaderProps) => (
   <section className="child-hero">
@@ -40,6 +43,7 @@ export const ChildHeader = ({
         <p className="child-hero__eyebrow">Bestie Points</p>
         <h2>{profile.childName}</h2>
         <p>Let&apos;s win lots of stars today!</p>
+        <SyncStatus syncSession={syncSession} />
       </div>
     </div>
 
