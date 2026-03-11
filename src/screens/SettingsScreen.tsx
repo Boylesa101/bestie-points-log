@@ -7,6 +7,7 @@ import { DAY_OUT_PLACE_OPTIONS, getRewardCategoryIcon } from '../lib/rewards'
 import { LinkedDevicesList } from '../components/LinkedDevicesList'
 import { SyncStatus } from '../components/SyncStatus'
 import type {
+  AppMetadata,
   AppSettings,
   PairingCodeState,
   PresetAction,
@@ -36,6 +37,7 @@ interface SettingsScreenProps {
   onSave: (payload: SettingsPayload) => void
   onSyncNow: () => Promise<boolean>
   onUpgradeToSync: (payload: SettingsPayload) => Promise<PairingCodeState>
+  metadata: AppMetadata
   presets: Presets
   profile: Profile
   rewards: Reward[]
@@ -57,6 +59,7 @@ export const SettingsScreen = ({
   onSave,
   onSyncNow,
   onUpgradeToSync,
+  metadata,
   presets,
   profile,
   rewards,
@@ -70,6 +73,8 @@ export const SettingsScreen = ({
   const [addPresets, setAddPresets] = useState(presets.add)
   const [removePresets, setRemovePresets] = useState(presets.remove)
   const [rewardDrafts, setRewardDrafts] = useState(rewards)
+  const [reminderEnabled, setReminderEnabled] = useState(settings.reminderEnabled)
+  const [reminderTime, setReminderTime] = useState(settings.reminderTime)
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled)
   const [lockActive, setLockActive] = useState(settings.parentLock.isLocked)
   const [parentDisplayName, setParentDisplayName] = useState(settings.parentDisplayName)
@@ -98,6 +103,8 @@ export const SettingsScreen = ({
     setAddPresets(presets.add)
     setRemovePresets(presets.remove)
     setRewardDrafts(rewards)
+    setReminderEnabled(settings.reminderEnabled)
+    setReminderTime(settings.reminderTime)
     setSoundEnabled(settings.soundEnabled)
     setLockActive(settings.parentLock.isLocked)
     setParentDisplayName(settings.parentDisplayName)
@@ -349,6 +356,8 @@ export const SettingsScreen = ({
         isLocked: nextPin ? lockActive : false,
         pin: nextPin,
       },
+      reminderEnabled,
+      reminderTime,
       soundEnabled,
     }
 
@@ -586,6 +595,57 @@ export const SettingsScreen = ({
           <p className="field__help">
             Sounds are soft, local, and safe to mute. If a browser blocks playback, the app keeps
             working without errors.
+          </p>
+
+          <div className="settings-divider" />
+
+          <div className="settings-card__header settings-card__header--subsection">
+            <h3>Daily reminder</h3>
+            <div className="chip">⏰ This phone only</div>
+          </div>
+
+          <label className="toggle-row toggle-row--card">
+            <input
+              checked={reminderEnabled}
+              onChange={(event) => setReminderEnabled(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Ask “Any points today?” every day</span>
+          </label>
+
+          <label className="field">
+            <span className="field-label">Reminder time</span>
+            <input
+              className="text-input"
+              disabled={!reminderEnabled}
+              onChange={(event) => setReminderTime(event.target.value || '17:00')}
+              step={60}
+              type="time"
+              value={reminderTime}
+            />
+          </label>
+
+          <div className="info-card info-card--reminder">
+            <strong>Preview</strong>
+            <p>Bestie Points Log</p>
+            <small>Any points today?</small>
+          </div>
+
+          <p className="field__help">
+            Android app builds schedule a true local notification on this phone. Web and PWA
+            installs show a reliable in-app reminder after the chosen time when no points have
+            been logged yet today.
+          </p>
+
+          <p className="field__help">
+            Notification permission:{' '}
+            {metadata.notificationPermissionState === 'granted'
+              ? 'Allowed'
+              : metadata.notificationPermissionState === 'denied'
+                ? 'Blocked'
+                : metadata.notificationPermissionState === 'unsupported'
+                  ? 'Not available here'
+                  : 'Will be requested when needed'}
           </p>
 
           {settings.parentLock.pin && !shouldRemovePin ? (

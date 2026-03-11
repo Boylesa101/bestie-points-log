@@ -37,6 +37,7 @@ The frontend remains a PWA for Cloudflare Pages and stays ready for the existing
 - Device-local:
   - local mute preference
   - local PIN lock
+  - local daily reminder preference and time
   - local device name
   - local cache and sync metadata
 
@@ -162,6 +163,43 @@ If the file is missing, invalid, or blocked by autoplay rules:
 - the reveal still runs
 - a lightweight built-in fallback fanfare is used when possible
 - sound still respects the existing local mute setting
+
+## PWA Update Prompt
+
+- The PWA now uses a prompt-style service worker update flow
+- When a new service worker is waiting, the app shows:
+  - `New version available`
+  - `A new version of Bestie Points Log is ready. Update now?`
+- `Yes` activates the waiting service worker and reloads into the new version
+- `No` dismisses the prompt for the rest of that session without interrupting the current screen
+
+## Daily Reminders
+
+Reminder settings live in `Settings -> This device`, and stay local to each phone.
+
+Shared family sync does not force reminder preferences onto another parent device, because notification permissions and scheduling are device-specific.
+
+### Android app build
+
+- Uses Capacitor Local Notifications
+- Schedules a repeating daily local notification for the chosen local time
+- Default reminder time is `17:00`
+- Notification title: `Bestie Points Log`
+- Notification body: `Any points today?`
+- Android 13+ requires notification permission
+- Android exact alarm behavior depends on the device allowing scheduled exact alarms
+- Tapping the reminder opens the app and routes the parent toward point entry
+
+### Web / installed PWA fallback
+
+- The web app does not pretend to guarantee an exact background lock-screen reminder
+- Instead, once the app is opened or resumed after the chosen time, it checks whether any points were logged today
+- If not, it shows an in-app prompt:
+  - `Any points today?`
+  - `Add points now`
+  - `Not now`
+- The reminder is only shown once per day on that device unless the next day starts
+- If browser notification APIs are unavailable or denied, the app still works and falls back to the in-app prompt
 
 ## Backup Export / Import
 
@@ -292,6 +330,8 @@ Open Android Studio:
 npm run cap:open
 ```
 
+Daily reminder scheduling for Android is wired through Capacitor Local Notifications and is refreshed from the saved reminder settings on app launch.
+
 Native project path:
 
 ```text
@@ -392,6 +432,7 @@ Local device storage still uses separate `localStorage` keys:
 - Older local snapshots are sanitized and upgraded automatically
 - A parent can migrate an existing local-only log to synced family mode from settings
 - Migration uploads the current profile, child photo, presets, rewards, and point history to the shared backend
+- Existing installs also auto-seed the newer local reminder settings, reminder metadata, and notification permission state fields if they were missing
 
 ## Current Limitations / Follow-Up Ideas
 

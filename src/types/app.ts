@@ -1,6 +1,7 @@
 export type AppMode = 'local' | 'synced'
 export type HistorySyncStatus = 'error' | 'pending' | 'synced'
 export type MutationKind = 'point-event' | 'presets' | 'profile' | 'rewards'
+export type NotificationPermissionState = 'default' | 'denied' | 'granted' | 'unsupported'
 export type PointActionType = 'add' | 'remove'
 export type PresetSource = 'custom' | 'default'
 export type RewardCelebrationMode = 'redeem' | 'unlock'
@@ -90,6 +91,8 @@ export interface AppSettings {
   deviceName: string
   hasCompletedSetup: boolean
   hasSeenIntro: boolean
+  reminderEnabled: boolean
+  reminderTime: string
   parentDisplayName: string
   parentLock: ParentLockSettings
   soundEnabled: boolean
@@ -99,7 +102,10 @@ export interface AppMetadata {
   lastExportedAt: string | null
   lastImportedAt: string | null
   lastImportedSchemaVersion: number | null
+  lastPointsActivityDate: string | null
+  lastReminderShownDate: string | null
   lastMigratedToSyncAt: string | null
+  notificationPermissionState: NotificationPermissionState
   schemaVersion: number
 }
 

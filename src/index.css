@@ -867,6 +867,11 @@ img {
   margin-top: 8px;
 }
 
+.settings-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(226, 232, 240, 0), #e2e8f0 18%, #e2e8f0 82%, rgba(226, 232, 240, 0));
+}
+
 .sync-settings {
   display: grid;
   gap: 12px;
@@ -1087,6 +1092,69 @@ img {
 
 .actions-row--stack {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.modal-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.modal-actions__button {
+  width: 100%;
+  margin: 0;
+}
+
+.modal-actions__button--primary {
+  width: 100%;
+}
+
+.daily-reminder {
+  display: grid;
+  gap: 14px;
+}
+
+.daily-reminder__art {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top, rgba(250, 204, 21, 0.25), transparent 48%),
+    linear-gradient(180deg, #eff6ff 0%, #fdf4ff 100%);
+  border: 1px solid #ddd6fe;
+  font-size: 2rem;
+}
+
+.daily-reminder__art span:nth-child(2) {
+  transform: translateY(8px);
+}
+
+.info-card--reminder {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  margin: 0;
+  background:
+    radial-gradient(circle at top right, rgba(191, 219, 254, 0.3), transparent 26%),
+    linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border: 2px solid #dbeafe;
+}
+
+.info-card--reminder p,
+.info-card--reminder small,
+.info-card--reminder strong {
+  margin: 0;
+}
+
+.info-card--reminder p {
+  font-weight: 900;
+  color: var(--navy);
+}
+
+.info-card--reminder small {
+  color: #475569;
+  font-weight: 700;
 }
 
 .sync-pill {

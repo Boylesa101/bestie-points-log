@@ -65,6 +65,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   deviceName: '',
   hasCompletedSetup: false,
   hasSeenIntro: false,
+  reminderEnabled: false,
+  reminderTime: '17:00',
   parentDisplayName: 'Parent',
   parentLock: DEFAULT_PARENT_LOCK,
   soundEnabled: true,
@@ -74,7 +76,10 @@ export const DEFAULT_METADATA: AppMetadata = {
   lastExportedAt: null,
   lastImportedAt: null,
   lastImportedSchemaVersion: null,
+  lastPointsActivityDate: null,
+  lastReminderShownDate: null,
   lastMigratedToSyncAt: null,
+  notificationPermissionState: 'default',
   schemaVersion: STORAGE_SCHEMA_VERSION,
 }
 
@@ -367,10 +372,17 @@ export const sanitizeSettings = (value: unknown): AppSettings => {
     return DEFAULT_SETTINGS
   }
 
+  const reminderTime =
+    typeof value.reminderTime === 'string' && /^\d{2}:\d{2}$/.test(value.reminderTime)
+      ? value.reminderTime
+      : DEFAULT_SETTINGS.reminderTime
+
   return {
     deviceName: normalizeText(value.deviceName, '', 40),
     hasCompletedSetup: Boolean(value.hasCompletedSetup),
     hasSeenIntro: Boolean(value.hasSeenIntro),
+    reminderEnabled: normalizeBoolean(value.reminderEnabled, DEFAULT_SETTINGS.reminderEnabled),
+    reminderTime,
     parentDisplayName: normalizeText(value.parentDisplayName, 'Parent', 40),
     parentLock: sanitizeParentLock(value.parentLock),
     soundEnabled: normalizeBoolean(value.soundEnabled, DEFAULT_SETTINGS.soundEnabled),
@@ -390,7 +402,21 @@ export const sanitizeMetadata = (value: unknown): AppMetadata => {
       value.lastImportedSchemaVersion === undefined
         ? null
         : normalizePositiveInt(value.lastImportedSchemaVersion),
+    lastPointsActivityDate:
+      typeof value.lastPointsActivityDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.lastPointsActivityDate)
+        ? value.lastPointsActivityDate
+        : null,
+    lastReminderShownDate:
+      typeof value.lastReminderShownDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.lastReminderShownDate)
+        ? value.lastReminderShownDate
+        : null,
     lastMigratedToSyncAt: normalizeTimestamp(value.lastMigratedToSyncAt, null),
+    notificationPermissionState:
+      value.notificationPermissionState === 'granted' ||
+      value.notificationPermissionState === 'denied' ||
+      value.notificationPermissionState === 'unsupported'
+        ? value.notificationPermissionState
+        : 'default',
     schemaVersion:
       normalizePositiveInt(value.schemaVersion, STORAGE_SCHEMA_VERSION) ||
       STORAGE_SCHEMA_VERSION,

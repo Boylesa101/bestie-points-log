@@ -30,6 +30,7 @@ import {
   markQueueAttempt,
   mergeRemoteSnapshot,
 } from '../lib/sync/helpers'
+import { getDateKey } from '../lib/reminders'
 import { canRedeemReward, getRewardCost, isRewardReadyToReveal } from '../lib/rewards'
 import {
   readHistory,
@@ -56,6 +57,7 @@ import type {
   AppMetadata,
   AppSettings,
   JoinFamilyInput,
+  NotificationPermissionState,
   PairingCodeState,
   PointsActionInput,
   Presets,
@@ -485,6 +487,10 @@ export const useBestieApp = () => {
       return {
         ...currentState,
         history: nextHistory,
+        metadata: sanitizeMetadata({
+          ...currentState.metadata,
+          lastPointsActivityDate: getDateKey(new Date(event.timestamp)),
+        }),
         mutationQueue: sanitizeMutationQueue(nextQueue),
         totalPoints: deriveTotalPoints(nextHistory),
       }
@@ -683,6 +689,13 @@ export const useBestieApp = () => {
         return {
           ...currentState,
           history: nextHistory,
+          metadata: sanitizeMetadata({
+            ...currentState.metadata,
+            lastPointsActivityDate:
+              historyEvent !== null
+                ? getDateKey(new Date(historyEvent.timestamp))
+                : currentState.metadata.lastPointsActivityDate,
+          }),
           mutationQueue: sanitizeMutationQueue(nextQueue),
           rewards: nextRewards,
           totalPoints: deriveTotalPoints(nextHistory),
@@ -744,6 +757,37 @@ export const useBestieApp = () => {
     )
   }, [activeRewardCelebration, appState.rewards, appState.totalPoints, saveRewards])
 
+  const markReminderShown = useCallback((dateKey: string) => {
+    commit((currentState) => ({
+      ...currentState,
+      metadata: sanitizeMetadata({
+        ...currentState.metadata,
+        lastReminderShownDate: dateKey,
+      }),
+    }))
+  }, [commit])
+
+  const saveAppSettings = useCallback((nextSettings: AppSettings) => {
+    commit((currentState) => ({
+      ...currentState,
+      metadata: sanitizeMetadata(currentState.metadata),
+      settings: sanitizeSettings(nextSettings),
+    }))
+  }, [commit])
+
+  const setNotificationPermissionState = useCallback(
+    (permissionState: NotificationPermissionState) => {
+      commit((currentState) => ({
+        ...currentState,
+        metadata: sanitizeMetadata({
+          ...currentState.metadata,
+          notificationPermissionState: permissionState,
+        }),
+      }))
+    },
+    [commit],
+  )
+
   return {
     activeRewardCelebration,
     clearHistory: () =>
@@ -756,6 +800,10 @@ export const useBestieApp = () => {
         return {
           ...currentState,
           history: [],
+          metadata: sanitizeMetadata({
+            ...currentState.metadata,
+            lastPointsActivityDate: null,
+          }),
           totalPoints: 0,
         }
       }),
@@ -796,6 +844,7 @@ export const useBestieApp = () => {
     importSnapshot,
     joinSyncedFamily,
     metadata: appState.metadata,
+    markReminderShown,
     mutationQueue: appState.mutationQueue,
     presets: appState.presets,
     profile: appState.profile,
@@ -817,12 +866,8 @@ export const useBestieApp = () => {
       }))
     },
     rewards: appState.rewards,
-    saveAppSettings: (nextSettings: AppSettings) =>
-      commit((currentState) => ({
-        ...currentState,
-        metadata: sanitizeMetadata(currentState.metadata),
-        settings: sanitizeSettings(nextSettings),
-      })),
+    saveAppSettings,
+    setNotificationPermissionState,
     redeemReward,
     setRewardClaimed,
     setRewardCelebrationDismissed: () => setActiveRewardCelebration(null),

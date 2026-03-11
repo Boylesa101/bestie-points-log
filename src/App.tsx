@@ -1,16 +1,30 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { DailyReminderPrompt } from './components/DailyReminderPrompt'
 import { ParentGateModal } from './components/ParentGateModal'
 import { PointsModal } from './components/PointsModal'
 import { RewardDetailsSheet } from './components/RewardDetailsSheet'
 import { RewardRevealOverlay } from './components/RewardRevealOverlay'
 import { SplashScreen } from './components/SplashScreen'
+import { UpdatePrompt } from './components/UpdatePrompt'
 import { useBestieApp } from './hooks/useBestieApp'
 import {
   buildExportEnvelope,
   buildExportFilename,
   parseImportText,
 } from './lib/backup'
+import {
+  applyPwaUpdate,
+  subscribeToPwaUpdates,
+} from './lib/pwa'
+import {
+  getDateKey,
+  initializeReminderBridge,
+  isNativeReminderPlatform,
+  shouldShowWebReminderPrompt,
+  subscribeToReminderIntent,
+  syncReminderSchedule,
+} from './lib/reminders'
 import { playPointSound } from './lib/sound'
 import type {
   AppSettings,
@@ -59,6 +73,8 @@ function App() {
     history,
     importSnapshot,
     joinSyncedFamily,
+    markReminderShown,
+    metadata,
     presets,
     profile,
     resetPoints,
@@ -71,6 +87,7 @@ function App() {
     redeemReward,
     setRewardClaimed,
     setRewardCelebrationDismissed,
+    setNotificationPermissionState,
     settings,
     storageMessage,
     syncMessage,
@@ -92,6 +109,15 @@ function App() {
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
   const [transferError, setTransferError] = useState<string | null>(null)
   const [transferMessage, setTransferMessage] = useState<string | null>(null)
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false)
+  const [hasDismissedUpdatePrompt, setHasDismissedUpdatePrompt] = useState(false)
+  const [isDailyReminderOpen, setIsDailyReminderOpen] = useState(false)
+  const [shouldOpenPointsFromReminder, setShouldOpenPointsFromReminder] = useState(false)
+
+  const hasPointsToday = useMemo(() => {
+    const today = getDateKey()
+    return history.some((entry) => getDateKey(new Date(entry.timestamp)) === today)
+  }, [history])
 
   useEffect(() => {
     if (!settings.hasSeenIntro) {
@@ -107,6 +133,159 @@ function App() {
       window.clearTimeout(timeoutId)
     }
   }, [settings.hasCompletedSetup, settings.hasSeenIntro])
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPwaUpdates(setIsUpdateAvailable)
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    void initializeReminderBridge()
+
+    const unsubscribe = subscribeToReminderIntent(() => {
+      setShouldOpenPointsFromReminder(true)
+    })
+
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    const syncReminderPreferences = async () => {
+      const result = await syncReminderSchedule({
+        enabled: settings.reminderEnabled,
+        time: settings.reminderTime,
+      })
+
+      if (!isCancelled) {
+        setNotificationPermissionState(result.permissionState)
+      }
+    }
+
+    void syncReminderPreferences()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [
+    setNotificationPermissionState,
+    settings.reminderEnabled,
+    settings.reminderTime,
+  ])
+
+  const openPointsEntryFromReminder = useCallback(() => {
+    setScreen('home')
+    setIsDailyReminderOpen(false)
+    setIsPointsModalOpen(true)
+    setShouldOpenPointsFromReminder(false)
+  }, [])
+
+  useEffect(() => {
+    if (!shouldOpenPointsFromReminder || showSplash || !settings.hasCompletedSetup) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      openPointsEntryFromReminder()
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [
+    openPointsEntryFromReminder,
+    settings.hasCompletedSetup,
+    shouldOpenPointsFromReminder,
+    showSplash,
+  ])
+
+  const checkForDailyReminder = useCallback(() => {
+    if (
+      showSplash ||
+      !settings.hasCompletedSetup ||
+      !settings.reminderEnabled ||
+      isNativeReminderPlatform() ||
+      screen === 'setup' ||
+      isPointsModalOpen ||
+      activeRewardCelebration
+    ) {
+      return
+    }
+
+    const shouldShowReminder = shouldShowWebReminderPrompt({
+      hasPointsToday,
+      lastReminderShownDate: metadata.lastReminderShownDate,
+      reminderEnabled: settings.reminderEnabled,
+      reminderTime: settings.reminderTime,
+    })
+
+    if (!shouldShowReminder) {
+      return
+    }
+
+    markReminderShown(getDateKey())
+    setIsDailyReminderOpen(true)
+  }, [
+    activeRewardCelebration,
+    hasPointsToday,
+    isPointsModalOpen,
+    markReminderShown,
+    metadata.lastReminderShownDate,
+    screen,
+    settings.hasCompletedSetup,
+    settings.reminderEnabled,
+    settings.reminderTime,
+    showSplash,
+  ])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      checkForDailyReminder()
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [checkForDailyReminder])
+
+  useEffect(() => {
+    if (isNativeReminderPlatform()) {
+      return
+    }
+
+    const handleFocus = () => {
+      checkForDailyReminder()
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkForDailyReminder()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [checkForDailyReminder])
+
+  useEffect(() => {
+    if (!hasPointsToday) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsDailyReminderOpen(false)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [hasPointsToday])
 
   const handleSplashContinue = () => {
     completeIntro()
@@ -204,6 +383,14 @@ function App() {
     window.setTimeout(() => {
       setRewardMessage((currentMessage) => (currentMessage === message ? null : currentMessage))
     }, 2600)
+  }
+
+  const handleUpdateNow = async () => {
+    try {
+      await applyPwaUpdate()
+    } catch {
+      setRewardMessage('The update could not be applied right now.')
+    }
   }
 
   const shouldRequireParentPin =
@@ -410,6 +597,7 @@ function App() {
               profile={profile}
               rewards={rewards}
               settings={settings}
+              metadata={metadata}
               syncSession={syncSession}
               onCreateSyncCode={generateSyncCode}
               onRevokeLinkedDevice={revokeLinkedDevice}
@@ -481,6 +669,20 @@ function App() {
             open={Boolean(confirmState)}
             title={confirmState?.title ?? ''}
             tone={confirmState?.tone}
+          />
+
+          <UpdatePrompt
+            onConfirm={() => {
+              void handleUpdateNow()
+            }}
+            onDismiss={() => setHasDismissedUpdatePrompt(true)}
+            open={isUpdateAvailable && !hasDismissedUpdatePrompt}
+          />
+
+          <DailyReminderPrompt
+            onAddPointsNow={openPointsEntryFromReminder}
+            onDismiss={() => setIsDailyReminderOpen(false)}
+            open={isDailyReminderOpen}
           />
 
           {pointReaction ? (
