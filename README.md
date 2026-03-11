@@ -52,6 +52,59 @@ npm run preview
 
 The production output is written to `dist/`.
 
+## Android with Capacitor
+
+The project now supports two publish paths from the same codebase:
+
+- Web PWA build for Cloudflare Pages
+- Native Android wrapper via Capacitor
+
+### Android local workflow
+
+Build the web app for Capacitor:
+
+```bash
+npm run build
+```
+
+Sync the built web app into the Android project:
+
+```bash
+npm run cap:sync
+```
+
+Or run both steps together:
+
+```bash
+npm run android:sync
+```
+
+Open the Android project in Android Studio:
+
+```bash
+npm run cap:open
+```
+
+You can also open the native project directly from Android Studio at:
+
+```text
+android/
+```
+
+### Android Studio build output
+
+Typical Android Studio outputs will be written under:
+
+```text
+android/app/build/outputs/
+```
+
+Common locations include:
+
+- Debug APK: `android/app/build/outputs/apk/debug/`
+- Release APK: `android/app/build/outputs/apk/release/`
+- Release App Bundle: `android/app/build/outputs/bundle/release/`
+
 ## How localStorage works
 
 The app stores separate keys for each part of the data model:
@@ -88,6 +141,7 @@ If saved data is missing or corrupt, the app restores safe defaults instead of c
 - Service worker is generated at build time
 - Works offline after the app has been loaded once
 - Uses static hosting only, with no backend APIs
+- Capacitor support does not replace the PWA build; Cloudflare Pages continues to use the normal Vite `dist/` output
 
 ## Deploy to Cloudflare Pages
 
