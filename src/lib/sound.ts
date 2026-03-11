@@ -1,6 +1,27 @@
 import type { PointActionType } from '../types/app'
 
+const SOUND_FILES: Record<PointActionType, string> = {
+  add: '/sounds/yay.mp3',
+  remove: '/sounds/aww.mp3',
+}
+
+const SOUND_VOLUMES: Record<PointActionType, number> = {
+  add: 0.52,
+  remove: 0.46,
+}
+
+const SOUND_PLAYBACK_RATES: Record<PointActionType, number> = {
+  add: 1.12,
+  remove: 1.04,
+}
+
+const SOUND_CLIP_LENGTH_MS: Record<PointActionType, number> = {
+  add: 1250,
+  remove: 1450,
+}
+
 let sharedAudioContext: AudioContext | null = null
+const sharedAudioElements: Partial<Record<PointActionType, HTMLAudioElement>> = {}
 
 const getAudioContext = () => {
   if (typeof window === 'undefined') {
@@ -31,6 +52,12 @@ export const playPointSound = async (
     return false
   }
 
+  const assetPlayed = await playAudioAsset(type)
+
+  if (assetPlayed) {
+    return true
+  }
+
   const audioContext = getAudioContext()
 
   if (!audioContext) {
@@ -53,6 +80,54 @@ export const playPointSound = async (
     return false
   }
 }
+
+const playAudioAsset = async (type: PointActionType) => {
+  if (typeof window === 'undefined' || typeof Audio === 'undefined') {
+    return false
+  }
+
+  try {
+    const sourceAudio = getSharedAudio(type)
+
+    if (!sourceAudio) {
+      return false
+    }
+
+    const playbackAudio = sourceAudio.cloneNode() as HTMLAudioElement
+    playbackAudio.volume = sourceAudio.volume
+    playbackAudio.playbackRate = SOUND_PLAYBACK_RATES[type]
+    playbackAudio.preload = 'auto'
+    playbackAudio.currentTime = 0
+    await playbackAudio.play()
+    window.setTimeout(() => {
+      playbackAudio.pause()
+      playbackAudio.currentTime = 0
+      playbackAudio.src = ''
+    }, SOUND_CLIP_LENGTH_MS[type])
+    return true
+  } catch {
+    return false
+  }
+}
+
+const getSharedAudio = (type: PointActionType) => {
+  if (sharedAudioElements[type]) {
+    return sharedAudioElements[type] ?? null
+  }
+
+  if (typeof window === 'undefined' || typeof Audio === 'undefined') {
+    return null
+  }
+
+  const audio = new Audio(getSoundUrl(type))
+  audio.preload = 'auto'
+  audio.volume = SOUND_VOLUMES[type]
+  sharedAudioElements[type] = audio
+  return audio
+}
+
+const getSoundUrl = (type: PointActionType) =>
+  new URL(SOUND_FILES[type], window.location.origin).toString()
 
 const playPositiveSound = (audioContext: AudioContext) => {
   const start = audioContext.currentTime + 0.01

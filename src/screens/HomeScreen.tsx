@@ -32,7 +32,7 @@ export const HomeScreen = ({
   const visibleAddPresets = presets.add.filter((preset) => preset.visibleOnHome)
   const visibleRemovePresets = presets.remove.filter((preset) => preset.visibleOnHome)
   const displayedAddPresets = visibleAddPresets.slice(0, 6)
-  const displayedRemovePresets = visibleRemovePresets.slice(0, 4)
+  const displayedRemovePresets = visibleRemovePresets.slice(0, 6)
   const hiddenAddCount = Math.max(visibleAddPresets.length - displayedAddPresets.length, 0)
   const hiddenRemoveCount = Math.max(
     visibleRemovePresets.length - displayedRemovePresets.length,
