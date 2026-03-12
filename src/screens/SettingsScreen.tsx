@@ -679,6 +679,8 @@ export const SettingsScreen = ({
             </label>
           </div>
 
+          <div className="chip chip--version">Version {__APP_VERSION__}</div>
+
           <label className="toggle-row toggle-row--card">
             <input
               checked={soundEnabled}
@@ -898,6 +900,11 @@ export const SettingsScreen = ({
 
           <div className="sync-settings">
             <SyncStatus syncSession={syncSession} />
+            {isWorkingOnSync ? (
+              <p className="success-text">Working on family sync…</p>
+            ) : null}
+            {syncNotice ? <p className="success-text">{syncNotice}</p> : null}
+            {error ? <p className="error-text">{error}</p> : null}
             <p className="field__help">
               {syncSession.mode === 'synced'
                 ? 'Shared items: child profile, presets, rewards, activity history, and total points. Create a fresh share code here whenever you want to add another parent phone.'
@@ -986,8 +993,6 @@ export const SettingsScreen = ({
                 ) : null}
               </div>
             )}
-
-            {syncNotice ? <p className="success-text">{syncNotice}</p> : null}
           </div>
         </section>
 
@@ -1469,7 +1474,7 @@ export const SettingsScreen = ({
           </p>
         </section>
 
-        {error ? <p className="error-text">{error}</p> : null}
+        {error && !isWorkingOnSync ? <p className="error-text">{error}</p> : null}
 
         <button className="save-button save-button--primary" onClick={handleSave} type="button">
           Save settings
