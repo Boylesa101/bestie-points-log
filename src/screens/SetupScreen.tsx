@@ -154,7 +154,7 @@ export const SetupScreen = ({
             <p className="setup-card__eyebrow">First-time setup</p>
             <h1>Choose how this phone should join Bestie Points</h1>
             <p className="setup-card__copy">
-              Create a new log for this child or join the shared family log with a sync code.
+              Create a new log for this child, or enter a share code from the first phone to join the same family log.
             </p>
 
             <div className="setup-choice-grid">
@@ -164,7 +164,7 @@ export const SetupScreen = ({
                 type="button"
               >
                 <strong>Create new Bestie Points Log</strong>
-                <span>Set up this child and decide whether to keep it local or sync two parent phones.</span>
+                <span>Set up this child, then choose local-only mode or create a share code for the second parent phone.</span>
               </button>
 
               <button
@@ -173,7 +173,7 @@ export const SetupScreen = ({
                 type="button"
               >
                 <strong>Join with sync code</strong>
-                <span>Use the code from the first phone to link this one to the shared family log.</span>
+                <span>Use the share code from the first phone to pull the same child name, photo, points, history, presets, and rewards.</span>
               </button>
             </div>
           </>
@@ -192,7 +192,7 @@ export const SetupScreen = ({
             </div>
 
             <p className="setup-card__copy">
-              Add the child details first, then choose local-only mode or family sync.
+              Add the child details first, then choose local-only mode or create a family share code for the second phone.
             </p>
 
             <div className="setup-avatar">
@@ -287,7 +287,7 @@ export const SetupScreen = ({
               {isProcessingPhoto
                 ? 'Saving the photo for this phone...'
                 : isSyncEnabled
-                  ? 'If sync is enabled, the second phone will join with a short family sync code.'
+                  ? 'If sync is enabled, this phone will create a short share code for the second parent phone.'
                   : 'Photos are cropped and compressed before they are stored locally.'}
             </p>
 
@@ -299,7 +299,11 @@ export const SetupScreen = ({
               onClick={() => void handleCreate()}
               type="button"
             >
-              {isWorking ? 'Creating family log...' : 'Continue'}
+              {isWorking
+                ? 'Creating family log...'
+                : isSyncEnabled
+                  ? 'Create family log and get share code'
+                  : 'Finish local setup'}
             </button>
           </>
         ) : null}
@@ -371,7 +375,7 @@ export const SetupScreen = ({
             <p className="setup-card__eyebrow">Family sync is ready</p>
             <h1>Use this code on the second phone</h1>
             <p className="setup-card__copy">
-              Enter this code on the other parent phone to link both devices to the same child log.
+              Enter this code on the other parent phone during first-time setup to link both devices to the same child log.
             </p>
 
             <div className="pair-code-card">

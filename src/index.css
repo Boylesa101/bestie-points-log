@@ -234,6 +234,30 @@ img {
   z-index: 2;
 }
 
+.child-hero__settings-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: #475569;
+}
+
+.child-hero__settings-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.child-hero__settings-spark {
+  position: absolute;
+  right: -7px;
+  top: -7px;
+  font-size: 0.8rem;
+  filter: drop-shadow(0 2px 4px rgba(244, 114, 182, 0.28));
+}
+
 .child-hero__top {
   position: relative;
   z-index: 1;

@@ -890,9 +890,9 @@ export const SettingsScreen = ({
 
         <section className="settings-card">
           <div className="settings-card__header">
-            <h3>Family sync</h3>
+            <h3>Family sync & share code</h3>
             <div className="chip">
-              {syncSession.mode === 'synced' ? '☁️ Shared family' : '🏠 Local only'}
+              {syncSession.mode === 'synced' ? '☁️ Shared family' : '🔗 Ready to share'}
             </div>
           </div>
 
@@ -900,8 +900,8 @@ export const SettingsScreen = ({
             <SyncStatus syncSession={syncSession} />
             <p className="field__help">
               {syncSession.mode === 'synced'
-                ? 'Shared items: child profile, presets, rewards, activity history, and total points. Device-only items stay on this phone.'
-                : 'Upgrade this log when you want two parent phones to share the same child profile, points, history, presets, and rewards.'}
+                ? 'Shared items: child profile, presets, rewards, activity history, and total points. Create a fresh share code here whenever you want to add another parent phone.'
+                : 'Turn on family sync here when you want two parent phones to share the same child profile, points, history, presets, and rewards.'}
             </p>
 
             {syncSession.mode === 'synced' ? (
@@ -925,16 +925,16 @@ export const SettingsScreen = ({
                     }}
                     type="button"
                   >
-                    New sync code
+                    Create share code
                   </button>
                 </div>
 
                 {activePairingCode ? (
                   <div className="pair-code-card">
-                    <p className="field-label">Current join code</p>
+                    <p className="field-label">Current share code</p>
                     <div className="pair-code-card__code">{activePairingCode.code}</div>
                     <p className="field__help">
-                      Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
+                      Enter this on the second phone during setup. Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
                     </p>
                     <button className="soft-button" onClick={() => void handleCopyCode()} type="button">
                       Copy code
@@ -958,8 +958,8 @@ export const SettingsScreen = ({
             ) : (
               <div className="sync-upgrade-card">
                 <p className="field__help">
-                  Save your latest profile changes and create a family log in the cloud for the
-                  second phone to join with a short code.
+                  Save your latest profile changes, turn on family sync, and get a share code for
+                  the second phone.
                 </p>
                 <button
                   className="inline-button"
@@ -969,15 +969,15 @@ export const SettingsScreen = ({
                   }}
                   type="button"
                 >
-                  Upgrade this log to synced family mode
+                  Turn on family sync and get share code
                 </button>
 
                 {activePairingCode ? (
                   <div className="pair-code-card">
-                    <p className="field-label">Join code</p>
+                    <p className="field-label">Share code</p>
                     <div className="pair-code-card__code">{activePairingCode.code}</div>
                     <p className="field__help">
-                      Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
+                      Enter this on the second phone during setup. Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
                     </p>
                     <button className="soft-button" onClick={() => void handleCopyCode()} type="button">
                       Copy code
