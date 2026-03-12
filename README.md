@@ -1,6 +1,6 @@
 # Bestie Points Log
 
-Current version: `1.1.0`
+Current version: `1.2.0`
 
 Bestie Points Log is a cheerful mobile-first React app for tracking a child’s points. It now supports two modes from one shared codebase:
 
@@ -12,8 +12,8 @@ The frontend remains a PWA for Cloudflare Pages and stays ready for the existing
 ## What The App Does
 
 - Cheerful splash screen and first-time setup flow
-- Home screen with win/lose presets, custom point entry, history, rewards, and settings
-- Parent-managed profile, presets, rewards, sounds, PIN lock, export/import, and device management
+- Home screen with win/lose presets, custom point entry, history, and reward progress
+- A separate parent `Account` hub for child profile, point buttons, rewards, sync/devices, settings, and help
 - Gentle language checks for parent-entered custom wording, with calmer suggestions and a soft override
 - Reward reveals with a full-screen `WELL DONE!` celebration, day out templates, and gated parent offer details
 - Local-first offline behavior with background sync when family mode is enabled
@@ -100,9 +100,28 @@ When family sync is enabled:
 
 The second phone pulls the current shared child profile, photo, points, history, presets, rewards, and linked-device state.
 
+## Home Vs Account
+
+- `Home` stays focused on daily use:
+  - child header
+  - total points
+  - win and lose actions
+  - custom point entry
+  - recent activity
+  - reward progress and redeem flow
+- `Account` is the parent hub:
+  - `Edit child profile`
+  - `Manage rewards`
+  - `Manage point buttons`
+  - `Sync & devices`
+  - `Settings`
+  - `Help & support`
+
+This keeps the child-facing home screen cheerful and uncluttered while making parent tasks easier to find.
+
 ## Linked Device Management
 
-In `Settings -> Family sync`, the primary device can:
+In `Account -> Sync & devices`, the primary device can:
 
 - create a fresh sync code
 - copy the current sync code
@@ -110,7 +129,7 @@ In `Settings -> Family sync`, the primary device can:
 - revoke a linked device
 - manually trigger a sync
 
-Existing local-only users can migrate later from `Settings -> Family sync -> Upgrade this log to synced family mode`.
+Existing local-only users can migrate later from `Account -> Sync & devices`.
 
 ## Day Out Rewards And Reveal Flow
 
@@ -229,7 +248,7 @@ If there is immediate danger, contact local emergency services right away.
 
 ## Daily Reminders
 
-Reminder settings live in `Settings -> This device`, and stay local to each phone.
+Reminder settings live in `Account -> Settings`, and stay local to each phone.
 
 Shared family sync does not force reminder preferences onto another parent device, because notification permissions and scheduling are device-specific.
 
@@ -484,9 +503,10 @@ Local device storage still uses separate `localStorage` keys:
 
 - Existing local-only installs keep working
 - Older local snapshots are sanitized and upgraded automatically
-- A parent can migrate an existing local-only log to synced family mode from settings
+- A parent can migrate an existing local-only log to synced family mode from Account
 - Migration uploads the current profile, child photo, presets, rewards, and point history to the shared backend
 - Existing installs also auto-seed the newer local reminder settings, tone-check settings, reminder metadata, and notification permission state fields if they were missing
+- Legacy local history uploaded during sync migration is now safely re-attributed to the creating device on the server so D1 foreign keys stay valid
 
 ## Current Limitations / Follow-Up Ideas
 

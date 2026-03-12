@@ -12,10 +12,10 @@ import type {
 
 interface HomeScreenProps {
   history: HistoryEntry[]
+  onOpenAccount: () => void
   onOpenHistory: () => void
   onOpenPointsModal: () => void
   onOpenRewards: () => void
-  onOpenSettings: () => void
   onPresetTap: (label: string, points: number, type: PointActionType) => void
   presets: Presets
   profile: Profile
@@ -26,10 +26,10 @@ interface HomeScreenProps {
 
 export const HomeScreen = ({
   history,
+  onOpenAccount,
   onOpenHistory,
   onOpenPointsModal,
   onOpenRewards,
-  onOpenSettings,
   onPresetTap,
   presets,
   profile,
@@ -52,7 +52,7 @@ export const HomeScreen = ({
     <main className="screen screen--home">
       <div className="home-stack home-stack--mock">
         <ChildHeader
-          onOpenSettings={onOpenSettings}
+          onOpenAccount={onOpenAccount}
           profile={profile}
           syncSession={syncSession}
           totalPoints={totalPoints}

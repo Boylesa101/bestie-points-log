@@ -139,7 +139,17 @@ const handleRequest = async (request: Request, env: WorkerEnv) => {
     return errorResponse('Not found.', 404, origin)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected sync error.'
-    const status = message.includes('required') ? 400 : message.includes('valid') ? 401 : 500
+    if (message.includes('foreign key constraint failed')) {
+      console.error('[sync:d1-foreign-key]', request.method, url.pathname, message)
+      return errorResponse(
+        'Sync data could not be linked safely. Please try again.',
+        409,
+        origin,
+      )
+    }
+
+    const status =
+      message.includes('required') ? 400 : message.includes('valid') ? 401 : 500
     return errorResponse(message, status, origin)
   }
 }

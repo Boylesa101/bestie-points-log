@@ -2,14 +2,14 @@ import { SyncStatus } from './SyncStatus'
 import type { Profile, SyncSession } from '../types/app'
 
 interface ChildHeaderProps {
-  onOpenSettings: () => void
+  onOpenAccount: () => void
   profile: Profile
   syncSession: SyncSession
   totalPoints: number
 }
 
 export const ChildHeader = ({
-  onOpenSettings,
+  onOpenAccount,
   profile,
   syncSession,
   totalPoints,
@@ -19,14 +19,14 @@ export const ChildHeader = ({
     <div className="child-hero__decor child-hero__decor--left">☁️</div>
     <div className="child-hero__decor child-hero__decor--right">⭐</div>
     <button
-      aria-label="Open settings"
+      aria-label="Open account"
       className="child-hero__settings"
-      onClick={onOpenSettings}
+      onClick={onOpenAccount}
       type="button"
     >
       <span className="child-hero__settings-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" focusable="false">
-          <path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.6.6 0 0 0 .14-.76l-1.92-3.32a.6.6 0 0 0-.72-.26l-2.39.96a7.53 7.53 0 0 0-1.63-.94l-.36-2.54A.6.6 0 0 0 13.7 1h-3.4a.6.6 0 0 0-.59.51l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.6.6 0 0 0-.72.26L2.7 7.61a.6.6 0 0 0 .14.76l2.03 1.58c-.04.31-.07.63-.07.94s.03.63.07.94L2.84 13.4a.6.6 0 0 0-.14.76l1.92 3.32c.15.26.46.37.72.26l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54c.05.29.3.51.59.51h3.4c.29 0 .54-.22.59-.51l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96c.26.11.57 0 .72-.26l1.92-3.32a.6.6 0 0 0-.14-.76l-2.03-1.58ZM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2Z" />
+          <path d="M12 12.2a3.1 3.1 0 1 0 0-6.2 3.1 3.1 0 0 0 0 6.2Zm0 1.8c-3.3 0-6 1.72-6 3.84 0 .64.52 1.16 1.16 1.16h9.68c.64 0 1.16-.52 1.16-1.16 0-2.12-2.7-3.84-6-3.84Z" />
         </svg>
         <span className="child-hero__settings-spark">✨</span>
       </span>

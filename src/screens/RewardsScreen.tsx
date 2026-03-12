@@ -65,7 +65,7 @@ export const RewardsScreen = ({
         />
 
         <button className="quick-link" onClick={onOpenSettings} type="button">
-          Edit rewards in settings
+          Open Account to manage rewards
           <small>Change reward type, booking links, offer notes, and day out details.</small>
         </button>
       </div>

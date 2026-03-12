@@ -9,6 +9,7 @@ import { LinkedDevicesList } from '../components/LinkedDevicesList'
 import { ParentSupportSheet } from '../components/ParentSupportSheet'
 import { SyncStatus } from '../components/SyncStatus'
 import { ToneCheckPrompt } from '../components/ToneCheckPrompt'
+import type { AccountSectionTarget } from './AccountScreen'
 import type {
   AppMetadata,
   AppSettings,
@@ -46,6 +47,7 @@ interface SettingsScreenProps {
   presets: Presets
   profile: Profile
   rewards: Reward[]
+  section: AccountSectionTarget
   settings: AppSettings
   syncSession: SyncSession
   transferError: string | null
@@ -68,6 +70,7 @@ export const SettingsScreen = ({
   presets,
   profile,
   rewards,
+  section,
   settings,
   syncSession,
   transferError,
@@ -567,15 +570,43 @@ export const SettingsScreen = ({
     }
   }
 
+  const sectionContent = {
+    points: {
+      eyebrow: 'Points & rewards',
+      lead: 'Create rewards, manage reward redemption plans, and keep the home-screen point buttons tidy.',
+      title: 'Points & rewards',
+    },
+    profile: {
+      eyebrow: 'Child profile',
+      lead: `Edit ${profile.childName}’s name and photo without cluttering the main home screen.`,
+      title: 'Edit child profile',
+    },
+    settings: {
+      eyebrow: 'App settings',
+      lead: 'Manage sounds, reminders, parent lock, tone safeguards, and local backup tools for this phone.',
+      title: 'Settings',
+    },
+    support: {
+      eyebrow: 'Help & support',
+      lead: 'See calm parent-support links, app guidance, and version details in one place.',
+      title: 'Help & support',
+    },
+    sync: {
+      eyebrow: 'Sync & devices',
+      lead: 'Manage this phone, linked devices, and family share codes without mixing them into everyday point tracking.',
+      title: 'Sync & devices',
+    },
+  } as const
+
+  const currentSection = sectionContent[section]
+
   return (
     <main className="screen">
       <header className="subscreen__header">
         <div>
-          <p className="subscreen__eyebrow">Parent tools</p>
-          <h1 className="subscreen__title">Settings</h1>
-          <p className="subscreen__lead">
-            Edit {profile.childName}’s profile, presets, rewards, and storage controls.
-          </p>
+          <p className="subscreen__eyebrow">{currentSection.eyebrow}</p>
+          <h1 className="subscreen__title">{currentSection.title}</h1>
+          <p className="subscreen__lead">{currentSection.lead}</p>
         </div>
 
         <button className="back-button" onClick={onBack} type="button">
@@ -584,901 +615,976 @@ export const SettingsScreen = ({
       </header>
 
       <div className="settings-stack">
-        <section className="settings-card">
-          <div className="settings-card__header">
-            <h3>Profile setup</h3>
-            <div className="chip">👨‍👩‍👧 Parent only</div>
-          </div>
-
-          <label className="field">
-            <span className="field-label">Child name</span>
-            <input
-              className="text-input"
-              maxLength={40}
-              onChange={(event) => setChildName(event.target.value)}
-              placeholder="Henry"
-              value={childName}
-            />
-          </label>
-
-          <div className="avatar-editor">
-            <div className="avatar">
-              {photoDataUrl ? (
-                <img alt={childName || 'Child photo'} src={photoDataUrl} />
-              ) : (
-                <div className="avatar__placeholder">
-                  <span>{(childName || 'H').charAt(0).toUpperCase()}</span>
-                  <span className="avatar__sparkle">🪄</span>
-                </div>
-              )}
+        {section === 'profile' ? (
+          <section className="settings-card">
+            <div className="settings-card__header">
+              <h3>Profile setup</h3>
+              <div className="chip">👨‍👩‍👧 Parent only</div>
             </div>
 
-            <div className="avatar-editor__buttons">
-              <button
-                className="inline-button"
-                onClick={() => fileInputRef.current?.click()}
-                type="button"
-              >
-                {photoDataUrl ? 'Change photo' : 'Upload photo'}
-              </button>
-              <button
-                className="soft-button"
-                onClick={() => setPhotoDataUrl(null)}
-                type="button"
-              >
-                Use placeholder avatar
-              </button>
-              <p className="field__help">
-                {isProcessingPhoto ? 'Resizing photo...' : 'Photo is resized before it is stored locally.'}
-              </p>
-            </div>
-          </div>
-
-          <input
-            accept="image/*"
-            className="hidden-input"
-            onChange={handlePhotoPick}
-            ref={fileInputRef}
-            type="file"
-          />
-        </section>
-
-        <section className="settings-card">
-          <div className="settings-card__header">
-            <h3>This device</h3>
-            <div className="chip">📱 Parent side</div>
-          </div>
-
-          <div className="editor-list">
             <label className="field">
-              <span className="field-label">Parent display name</span>
+              <span className="field-label">Child name</span>
               <input
                 className="text-input"
                 maxLength={40}
-                onChange={(event) => setParentDisplayName(event.target.value)}
-                placeholder="Mum"
-                value={parentDisplayName}
+                onChange={(event) => setChildName(event.target.value)}
+                placeholder="Henry"
+                value={childName}
               />
-              <p className="field__help">
-                Used on new activity from this phone, like “Dad added +50”.
-              </p>
             </label>
 
-            <label className="field">
-              <span className="field-label">Device name</span>
-              <input
-                className="text-input"
-                maxLength={40}
-                onChange={(event) => setDeviceName(event.target.value)}
-                placeholder="Dad&apos;s phone"
-                value={deviceName}
-              />
-              <p className="field__help">
-                Helps you tell linked devices apart later.
-              </p>
-            </label>
-          </div>
+            <div className="avatar-editor">
+              <div className="avatar">
+                {photoDataUrl ? (
+                  <img alt={childName || 'Child photo'} src={photoDataUrl} />
+                ) : (
+                  <div className="avatar__placeholder">
+                    <span>{(childName || 'H').charAt(0).toUpperCase()}</span>
+                    <span className="avatar__sparkle">🪄</span>
+                  </div>
+                )}
+              </div>
 
-          <div className="chip chip--version">Version {__APP_VERSION__}</div>
-
-          <label className="toggle-row toggle-row--card">
-            <input
-              checked={soundEnabled}
-              onChange={(event) => setSoundEnabled(event.target.checked)}
-              type="checkbox"
-            />
-            <span>Play cheerful sounds for points</span>
-          </label>
-
-          <p className="field__help">
-            Sounds are soft, local, and safe to mute. If a browser blocks playback, the app keeps
-            working without errors.
-          </p>
-
-          <div className="settings-divider" />
-
-          <div className="settings-card__header settings-card__header--subsection">
-            <h3>Daily reminder</h3>
-            <div className="chip">⏰ This phone only</div>
-          </div>
-
-          <label className="toggle-row toggle-row--card">
-            <input
-              checked={reminderEnabled}
-              onChange={(event) => setReminderEnabled(event.target.checked)}
-              type="checkbox"
-            />
-            <span>Ask “Any points today?” every day</span>
-          </label>
-
-          <label className="field">
-            <span className="field-label">Reminder time</span>
-            <input
-              className="text-input"
-              disabled={!reminderEnabled}
-              onChange={(event) => setReminderTime(event.target.value || '17:00')}
-              step={60}
-              type="time"
-              value={reminderTime}
-            />
-          </label>
-
-          <div className="info-card info-card--reminder">
-            <strong>Preview</strong>
-            <p>Bestie Points Log</p>
-            <small>Any points today?</small>
-          </div>
-
-          <p className="field__help">
-            Android app builds schedule a true local notification on this phone. Web and PWA
-            installs show a reliable in-app reminder after the chosen time when no points have
-            been logged yet today.
-          </p>
-
-          <p className="field__help">
-            Notification permission:{' '}
-            {metadata.notificationPermissionState === 'granted'
-              ? 'Allowed'
-              : metadata.notificationPermissionState === 'denied'
-                ? 'Blocked'
-                : metadata.notificationPermissionState === 'unsupported'
-                  ? 'Not available here'
-                  : 'Will be requested when needed'}
-          </p>
-
-          <div className="settings-divider" />
-
-          <div className="settings-card__header settings-card__header--subsection">
-            <h3>Gentle language check</h3>
-            <div className="chip">🫶 This phone only</div>
-          </div>
-
-          <label className="toggle-row toggle-row--card">
-            <input
-              checked={gentleLanguageCheckEnabled}
-              onChange={(event) => {
-                setGentleLanguageCheckEnabled(event.target.checked)
-                setToneOverrideSignature(null)
-              }}
-              type="checkbox"
-            />
-            <span>Check custom wording before save</span>
-          </label>
-
-          <label className="toggle-row toggle-row--card">
-            <input
-              checked={toneCheckSuggestionsEnabled}
-              disabled={!gentleLanguageCheckEnabled}
-              onChange={(event) => setToneCheckSuggestionsEnabled(event.target.checked)}
-              type="checkbox"
-            />
-            <span>Show calmer wording suggestions</span>
-          </label>
-
-          <label className="toggle-row toggle-row--card">
-            <input
-              checked={toneCheckSupportEnabled}
-              disabled={!gentleLanguageCheckEnabled}
-              onChange={(event) => setToneCheckSupportEnabled(event.target.checked)}
-              type="checkbox"
-            />
-            <span>Show support link in warnings</span>
-          </label>
-
-          <div className="support-row">
-            <p className="field__help">
-              This gentle check stays local to this phone and only appears in parent text-entry
-              flows like custom reasons, presets, and rewards.
-            </p>
-            <button
-              className="soft-button soft-button--violet"
-              onClick={() => setIsSupportOpen(true)}
-              type="button"
-            >
-              Need support?
-            </button>
-          </div>
-
-          {settings.parentLock.pin && !shouldRemovePin ? (
-            <>
-              <label className="toggle-row toggle-row--card">
-                <input
-                  checked={lockActive}
-                  onChange={(event) => setLockActive(event.target.checked)}
-                  type="checkbox"
-                />
-                <span>Require PIN before opening settings</span>
-              </label>
-
-              <div className="actions-row actions-row--stack">
+              <div className="avatar-editor__buttons">
                 <button
                   className="inline-button"
-                  onClick={() => {
-                    setIsChangingPin((current) => !current)
-                    setPinDraft('')
-                    setConfirmPinDraft('')
-                    setShouldRemovePin(false)
-                    setError('')
-                  }}
+                  onClick={() => fileInputRef.current?.click()}
                   type="button"
                 >
-                  {isChangingPin ? 'Keep current PIN' : 'Change PIN'}
+                  {photoDataUrl ? 'Change photo' : 'Upload photo'}
+                </button>
+                <button
+                  className="soft-button"
+                  onClick={() => setPhotoDataUrl(null)}
+                  type="button"
+                >
+                  Use placeholder avatar
+                </button>
+                <p className="field__help">
+                  {isProcessingPhoto ? 'Resizing photo...' : 'Photo is resized before it is stored locally.'}
+                </p>
+              </div>
+            </div>
+
+            <input
+              accept="image/*"
+              className="hidden-input"
+              onChange={handlePhotoPick}
+              ref={fileInputRef}
+              type="file"
+            />
+          </section>
+        ) : null}
+
+        {section === 'sync' ? (
+          <>
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>This phone</h3>
+                <div className="chip">📱 Parent side</div>
+              </div>
+
+              <div className="editor-list">
+                <label className="field">
+                  <span className="field-label">Parent display name</span>
+                  <input
+                    className="text-input"
+                    maxLength={40}
+                    onChange={(event) => setParentDisplayName(event.target.value)}
+                    placeholder="Mum"
+                    value={parentDisplayName}
+                  />
+                  <p className="field__help">
+                    Used on new activity from this phone, like “Dad added +50”.
+                  </p>
+                </label>
+
+                <label className="field">
+                  <span className="field-label">Device name</span>
+                  <input
+                    className="text-input"
+                    maxLength={40}
+                    onChange={(event) => setDeviceName(event.target.value)}
+                    placeholder="Dad&apos;s phone"
+                    value={deviceName}
+                  />
+                  <p className="field__help">
+                    Helps you tell linked devices apart later.
+                  </p>
+                </label>
+              </div>
+
+              <div className="chip chip--version">Version {__APP_VERSION__}</div>
+            </section>
+
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Family sync &amp; share code</h3>
+                <div className="chip">
+                  {syncSession.mode === 'synced' ? '☁️ Shared family' : '🔗 Ready to share'}
+                </div>
+              </div>
+
+              <div className="sync-settings">
+                <SyncStatus syncSession={syncSession} />
+                {isWorkingOnSync ? <p className="success-text">Working on family sync…</p> : null}
+                {syncNotice ? <p className="success-text">{syncNotice}</p> : null}
+                {error ? <p className="error-text">{error}</p> : null}
+                <p className="field__help">
+                  {syncSession.mode === 'synced'
+                    ? 'Shared items: child profile, presets, rewards, activity history, and total points. Create a fresh share code here whenever you want to add another parent phone.'
+                    : 'Turn on family sync here when you want two parent phones to share the same child profile, points, history, presets, and rewards.'}
+                </p>
+
+                {syncSession.mode === 'synced' ? (
+                  <>
+                    <div className="actions-row">
+                      <button
+                        className="inline-button"
+                        disabled={isWorkingOnSync}
+                        onClick={() => {
+                          void handleSyncNow()
+                        }}
+                        type="button"
+                      >
+                        Sync now
+                      </button>
+                      <button
+                        className="inline-button"
+                        disabled={isWorkingOnSync}
+                        onClick={() => {
+                          void handleCreateSyncCode()
+                        }}
+                        type="button"
+                      >
+                        Generate sync code
+                      </button>
+                    </div>
+
+                    {activePairingCode ? (
+                      <div className="pair-code-card">
+                        <p className="field-label">Current share code</p>
+                        <div className="pair-code-card__code">{activePairingCode.code}</div>
+                        <p className="field__help">
+                          Enter this on the second phone during setup. Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
+                        </p>
+                        <button className="soft-button" onClick={() => void handleCopyCode()} type="button">
+                          Copy code
+                        </button>
+                      </div>
+                    ) : null}
+
+                    <div className="settings-card__header settings-card__header--subsection">
+                      <h3>Linked devices</h3>
+                      <div className="chip">👨‍👩‍👧‍👦 Family</div>
+                    </div>
+
+                    <LinkedDevicesList
+                      devices={syncSession.linkedDevices}
+                      onRevoke={(deviceId) => {
+                        void handleRevokeDevice(deviceId)
+                      }}
+                      primaryDeviceId={syncSession.primaryDeviceId}
+                    />
+                  </>
+                ) : (
+                  <div className="sync-upgrade-card">
+                    <p className="field__help">
+                      Save your latest profile changes, turn on family sync, and get a share code for
+                      the second phone.
+                    </p>
+                    <button
+                      className="inline-button"
+                      disabled={isWorkingOnSync}
+                      onClick={() => {
+                        void handleUpgradeToSync()
+                      }}
+                      type="button"
+                    >
+                      Turn on family sync and get share code
+                    </button>
+
+                    {activePairingCode ? (
+                      <div className="pair-code-card">
+                        <p className="field-label">Share code</p>
+                        <div className="pair-code-card__code">{activePairingCode.code}</div>
+                        <p className="field__help">
+                          Enter this on the second phone during setup. Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
+                        </p>
+                        <button className="soft-button" onClick={() => void handleCopyCode()} type="button">
+                          Copy code
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        {section === 'settings' ? (
+          <>
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Sounds</h3>
+                <div className="chip">🎵 This phone only</div>
+              </div>
+
+              <label className="toggle-row toggle-row--card">
+                <input
+                  checked={soundEnabled}
+                  onChange={(event) => setSoundEnabled(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Play cheerful sounds for points</span>
+              </label>
+
+              <p className="field__help">
+                Sounds are soft, local, and safe to mute. If a browser blocks playback, the app keeps
+                working without errors.
+              </p>
+            </section>
+
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Daily reminder</h3>
+                <div className="chip">⏰ This phone only</div>
+              </div>
+
+              <label className="toggle-row toggle-row--card">
+                <input
+                  checked={reminderEnabled}
+                  onChange={(event) => setReminderEnabled(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Ask “Any points today?” every day</span>
+              </label>
+
+              <label className="field">
+                <span className="field-label">Reminder time</span>
+                <input
+                  className="text-input"
+                  disabled={!reminderEnabled}
+                  onChange={(event) => setReminderTime(event.target.value || '17:00')}
+                  step={60}
+                  type="time"
+                  value={reminderTime}
+                />
+              </label>
+
+              <div className="info-card info-card--reminder">
+                <strong>Preview</strong>
+                <p>Bestie Points Log</p>
+                <small>Any points today?</small>
+              </div>
+
+              <p className="field__help">
+                Android app builds schedule a true local notification on this phone. Web and PWA
+                installs show a reliable in-app reminder after the chosen time when no points have
+                been logged yet today.
+              </p>
+
+              <p className="field__help">
+                Notification permission:{' '}
+                {metadata.notificationPermissionState === 'granted'
+                  ? 'Allowed'
+                  : metadata.notificationPermissionState === 'denied'
+                    ? 'Blocked'
+                    : metadata.notificationPermissionState === 'unsupported'
+                      ? 'Not available here'
+                      : 'Will be requested when needed'}
+              </p>
+            </section>
+
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Gentle language check</h3>
+                <div className="chip">🫶 This phone only</div>
+              </div>
+
+              <label className="toggle-row toggle-row--card">
+                <input
+                  checked={gentleLanguageCheckEnabled}
+                  onChange={(event) => {
+                    setGentleLanguageCheckEnabled(event.target.checked)
+                    setToneOverrideSignature(null)
+                  }}
+                  type="checkbox"
+                />
+                <span>Check custom wording before save</span>
+              </label>
+
+              <label className="toggle-row toggle-row--card">
+                <input
+                  checked={toneCheckSuggestionsEnabled}
+                  disabled={!gentleLanguageCheckEnabled}
+                  onChange={(event) => setToneCheckSuggestionsEnabled(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Show calmer wording suggestions</span>
+              </label>
+
+              <label className="toggle-row toggle-row--card">
+                <input
+                  checked={toneCheckSupportEnabled}
+                  disabled={!gentleLanguageCheckEnabled}
+                  onChange={(event) => setToneCheckSupportEnabled(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Show support link in warnings</span>
+              </label>
+
+              <div className="support-row">
+                <p className="field__help">
+                  This gentle check stays local to this phone and only appears in parent text-entry
+                  flows like custom reasons, presets, and rewards.
+                </p>
+                <button
+                  className="soft-button soft-button--violet"
+                  onClick={() => setIsSupportOpen(true)}
+                  type="button"
+                >
+                  Need support?
+                </button>
+              </div>
+            </section>
+
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Parent lock</h3>
+                <div className="chip">🔐 This phone only</div>
+              </div>
+
+              {settings.parentLock.pin && !shouldRemovePin ? (
+                <>
+                  <label className="toggle-row toggle-row--card">
+                    <input
+                      checked={lockActive}
+                      onChange={(event) => setLockActive(event.target.checked)}
+                      type="checkbox"
+                    />
+                    <span>Require PIN before opening Account</span>
+                  </label>
+
+                  <div className="actions-row actions-row--stack">
+                    <button
+                      className="inline-button"
+                      onClick={() => {
+                        setIsChangingPin((current) => !current)
+                        setPinDraft('')
+                        setConfirmPinDraft('')
+                        setShouldRemovePin(false)
+                        setError('')
+                      }}
+                      type="button"
+                    >
+                      {isChangingPin ? 'Keep current PIN' : 'Change PIN'}
+                    </button>
+                    <button
+                      className="danger-button"
+                      onClick={() => {
+                        setShouldRemovePin(true)
+                        setLockActive(false)
+                        setIsChangingPin(false)
+                        setPinDraft('')
+                        setConfirmPinDraft('')
+                        setError('')
+                      }}
+                      type="button"
+                    >
+                      Remove PIN
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="field__help">
+                  Create a PIN to protect the Account area on this device.
+                </p>
+              )}
+
+              {shouldRemovePin ? (
+                <p className="field__help">
+                  PIN lock will be removed when you save settings.
+                </p>
+              ) : null}
+
+              {!shouldRemovePin && (isChangingPin || !settings.parentLock.pin) ? (
+                <div className="pin-fields">
+                  <label className="field">
+                    <span className="field-label">Parent PIN</span>
+                    <input
+                      autoComplete="off"
+                      className="number-input"
+                      inputMode="numeric"
+                      maxLength={8}
+                      onChange={(event) => setPinDraft(event.target.value)}
+                      placeholder="4-8 digits"
+                      type="password"
+                      value={pinDraft}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span className="field-label">Confirm PIN</span>
+                    <input
+                      autoComplete="off"
+                      className="number-input"
+                      inputMode="numeric"
+                      maxLength={8}
+                      onChange={(event) => setConfirmPinDraft(event.target.value)}
+                      placeholder="Repeat PIN"
+                      type="password"
+                      value={confirmPinDraft}
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              <p className="field__help">
+                Forgot the PIN later? Because the app is local-only, the recovery path is clearing this
+                app&apos;s stored browser data on that device.
+              </p>
+            </section>
+
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Storage tools</h3>
+                <div className="chip">🧹 Careful</div>
+              </div>
+
+              <div className="actions-row">
+                <button className="inline-button" onClick={onExportData} type="button">
+                  Export backup
+                </button>
+                <button
+                  className="inline-button"
+                  onClick={() => importInputRef.current?.click()}
+                  type="button"
+                >
+                  Import backup
+                </button>
+              </div>
+
+              <input
+                accept="application/json,.json"
+                className="hidden-input"
+                onChange={handleImportPick}
+                ref={importInputRef}
+                type="file"
+              />
+
+              {transferMessage ? <p className="success-text">{transferMessage}</p> : null}
+              {transferError ? <p className="error-text">{transferError}</p> : null}
+
+              <p className="field__help">
+                Imports are checked before they replace the current local data, and you will be asked
+                to confirm before anything is overwritten.
+              </p>
+
+              <div className="actions-row">
+                <button className="danger-button" onClick={onRequestResetPoints} type="button">
+                  Reset points
                 </button>
                 <button
                   className="danger-button"
-                  onClick={() => {
-                    setShouldRemovePin(true)
-                    setLockActive(false)
-                    setIsChangingPin(false)
-                    setPinDraft('')
-                    setConfirmPinDraft('')
-                    setError('')
-                  }}
+                  disabled={syncSession.mode === 'synced'}
+                  onClick={onRequestClearHistory}
                   type="button"
                 >
-                  Remove PIN
+                  Clear history
                 </button>
               </div>
-            </>
-          ) : (
-            <p className="field__help">
-              Create a PIN to protect the settings area on this device.
-            </p>
-          )}
+              <p className="field__help">
+                {syncSession.mode === 'synced'
+                  ? 'Reset points still adds a shared parent reset event. Shared history stays protected and cannot be cleared from one device.'
+                  : 'Destructive actions are protected with one more confirmation step.'}
+              </p>
+            </section>
+          </>
+        ) : null}
 
-          {shouldRemovePin ? (
-            <p className="field__help">
-              PIN lock will be removed when you save settings.
-            </p>
-          ) : null}
-
-          {!shouldRemovePin && (isChangingPin || !settings.parentLock.pin) ? (
-            <div className="pin-fields">
-              <label className="field">
-                <span className="field-label">Parent PIN</span>
-                <input
-                  autoComplete="off"
-                  className="number-input"
-                  inputMode="numeric"
-                  maxLength={8}
-                  onChange={(event) => setPinDraft(event.target.value)}
-                  placeholder="4-8 digits"
-                  type="password"
-                  value={pinDraft}
-                />
-              </label>
-
-              <label className="field">
-                <span className="field-label">Confirm PIN</span>
-                <input
-                  autoComplete="off"
-                  className="number-input"
-                  inputMode="numeric"
-                  maxLength={8}
-                  onChange={(event) => setConfirmPinDraft(event.target.value)}
-                  placeholder="Repeat PIN"
-                  type="password"
-                  value={confirmPinDraft}
-                />
-              </label>
-            </div>
-          ) : null}
-
-          <p className="field__help">
-            Forgot the PIN later? Because the app is local-only, the recovery path is clearing this
-            app&apos;s stored browser data on that device.
-          </p>
-        </section>
-
-        <section className="settings-card">
-          <div className="settings-card__header">
-            <h3>Family sync & share code</h3>
-            <div className="chip">
-              {syncSession.mode === 'synced' ? '☁️ Shared family' : '🔗 Ready to share'}
-            </div>
-          </div>
-
-          <div className="sync-settings">
-            <SyncStatus syncSession={syncSession} />
-            {isWorkingOnSync ? (
-              <p className="success-text">Working on family sync…</p>
-            ) : null}
-            {syncNotice ? <p className="success-text">{syncNotice}</p> : null}
-            {error ? <p className="error-text">{error}</p> : null}
-            <p className="field__help">
-              {syncSession.mode === 'synced'
-                ? 'Shared items: child profile, presets, rewards, activity history, and total points. Create a fresh share code here whenever you want to add another parent phone.'
-                : 'Turn on family sync here when you want two parent phones to share the same child profile, points, history, presets, and rewards.'}
-            </p>
-
-            {syncSession.mode === 'synced' ? (
-              <>
-                <div className="actions-row">
-                  <button
-                    className="inline-button"
-                    disabled={isWorkingOnSync}
-                    onClick={() => {
-                      void handleSyncNow()
-                    }}
-                    type="button"
-                  >
-                    Sync now
-                  </button>
-                  <button
-                    className="inline-button"
-                    disabled={isWorkingOnSync}
-                    onClick={() => {
-                      void handleCreateSyncCode()
-                    }}
-                    type="button"
-                  >
-                    Create share code
-                  </button>
-                </div>
-
-                {activePairingCode ? (
-                  <div className="pair-code-card">
-                    <p className="field-label">Current share code</p>
-                    <div className="pair-code-card__code">{activePairingCode.code}</div>
-                    <p className="field__help">
-                      Enter this on the second phone during setup. Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
-                    </p>
-                    <button className="soft-button" onClick={() => void handleCopyCode()} type="button">
-                      Copy code
-                    </button>
-                  </div>
-                ) : null}
-
-                <div className="settings-card__header settings-card__header--subsection">
-                  <h3>Linked devices</h3>
-                  <div className="chip">👨‍👩‍👧‍👦 Family</div>
-                </div>
-
-                <LinkedDevicesList
-                  devices={syncSession.linkedDevices}
-                  onRevoke={(deviceId) => {
-                    void handleRevokeDevice(deviceId)
-                  }}
-                  primaryDeviceId={syncSession.primaryDeviceId}
-                />
-              </>
-            ) : (
-              <div className="sync-upgrade-card">
-                <p className="field__help">
-                  Save your latest profile changes, turn on family sync, and get a share code for
-                  the second phone.
-                </p>
-                <button
-                  className="inline-button"
-                  disabled={isWorkingOnSync}
-                  onClick={() => {
-                    void handleUpgradeToSync()
-                  }}
-                  type="button"
-                >
-                  Turn on family sync and get share code
+        {section === 'points' ? (
+          <>
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Win point presets</h3>
+                <button className="inline-button" onClick={() => addPreset('add')} type="button">
+                  Add preset
                 </button>
-
-                {activePairingCode ? (
-                  <div className="pair-code-card">
-                    <p className="field-label">Share code</p>
-                    <div className="pair-code-card__code">{activePairingCode.code}</div>
-                    <p className="field__help">
-                      Enter this on the second phone during setup. Expires {new Date(activePairingCode.expiresAt).toLocaleTimeString()}.
-                    </p>
-                    <button className="soft-button" onClick={() => void handleCopyCode()} type="button">
-                      Copy code
-                    </button>
-                  </div>
-                ) : null}
               </div>
-            )}
-          </div>
-        </section>
 
-        <section className="settings-card">
-          <div className="settings-card__header">
-            <h3>Win point presets</h3>
-            <button className="inline-button" onClick={() => addPreset('add')} type="button">
-              Add preset
-            </button>
-          </div>
-
-          <div className="editor-list">
-            {addPresets.map((preset) => (
-              <div className="editor-row editor-row--preset" key={preset.id}>
-                <div className="editor-row__top">
-                  <div className="preset-editor__title">
-                    <span className="preset-editor__icon">
-                      {getPresetIcon(preset, 'add')}
-                    </span>
-                    <div>
-                      <strong>{preset.label || 'Preset'}</strong>
-                      <p className="field__help">
-                        {preset.source === 'default' ? 'Default preset' : 'Custom preset'}
-                      </p>
+              <div className="editor-list">
+                {addPresets.map((preset) => (
+                  <div className="editor-row editor-row--preset" key={preset.id}>
+                    <div className="editor-row__top">
+                      <div className="preset-editor__title">
+                        <span className="preset-editor__icon">
+                          {getPresetIcon(preset, 'add')}
+                        </span>
+                        <div>
+                          <strong>{preset.label || 'Preset'}</strong>
+                          <p className="field__help">
+                            {preset.source === 'default' ? 'Default preset' : 'Custom preset'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="preset-editor__actions">
+                        <button
+                          className="inline-button inline-button--tiny"
+                          onClick={() => movePreset('add', preset.id, 'up')}
+                          type="button"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className="inline-button inline-button--tiny"
+                          onClick={() => movePreset('add', preset.id, 'down')}
+                          type="button"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          className="danger-button danger-button--tiny"
+                          onClick={() => removePreset('add', preset.id)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
+
+                    <label className="field">
+                      <input
+                        className="text-input"
+                        onChange={(event) =>
+                          updatePreset('add', preset.id, 'label', event.target.value)
+                        }
+                        value={preset.label}
+                      />
+                    </label>
+
+                    <div className="editor-row__fields editor-row__fields--preset">
+                      <input
+                        className="number-input"
+                        min="1"
+                        onChange={(event) =>
+                          updatePreset('add', preset.id, 'points', event.target.value)
+                        }
+                        type="number"
+                        value={preset.points}
+                      />
+                      <input
+                        className="text-input text-input--icon"
+                        inputMode="text"
+                        maxLength={8}
+                        onChange={(event) =>
+                          updatePreset('add', preset.id, 'icon', event.target.value)
+                        }
+                        placeholder="⭐"
+                        value={preset.icon ?? ''}
+                      />
+                    </div>
+
+                    <label className="toggle-row">
+                      <input
+                        checked={preset.visibleOnHome}
+                        onChange={(event) =>
+                          updatePreset('add', preset.id, 'visibleOnHome', event.target.checked)
+                        }
+                        type="checkbox"
+                      />
+                      <span>Show this preset on the home screen</span>
+                    </label>
                   </div>
-                  <div className="preset-editor__actions">
-                    <button
-                      className="inline-button inline-button--tiny"
-                      onClick={() => movePreset('add', preset.id, 'up')}
-                      type="button"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="inline-button inline-button--tiny"
-                      onClick={() => movePreset('add', preset.id, 'down')}
-                      type="button"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      className="danger-button danger-button--tiny"
-                      onClick={() => removePreset('add', preset.id)}
-                      type="button"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                <label className="field">
-                  <input
-                    className="text-input"
-                    onChange={(event) =>
-                      updatePreset('add', preset.id, 'label', event.target.value)
-                    }
-                    value={preset.label}
-                  />
-                </label>
-
-                <div className="editor-row__fields editor-row__fields--preset">
-                  <input
-                    className="number-input"
-                    min="1"
-                    onChange={(event) =>
-                      updatePreset('add', preset.id, 'points', event.target.value)
-                    }
-                    type="number"
-                    value={preset.points}
-                  />
-                  <input
-                    className="text-input text-input--icon"
-                    inputMode="text"
-                    maxLength={8}
-                    onChange={(event) =>
-                      updatePreset('add', preset.id, 'icon', event.target.value)
-                    }
-                    placeholder="⭐"
-                    value={preset.icon ?? ''}
-                  />
-                </div>
-
-                <label className="toggle-row">
-                  <input
-                    checked={preset.visibleOnHome}
-                    onChange={(event) =>
-                      updatePreset('add', preset.id, 'visibleOnHome', event.target.checked)
-                    }
-                    type="checkbox"
-                  />
-                  <span>Show this preset on the home screen</span>
-                </label>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            </section>
 
-        <section className="settings-card">
-          <div className="settings-card__header">
-            <h3>Lose point presets</h3>
-            <button className="inline-button" onClick={() => addPreset('remove')} type="button">
-              Add preset
-            </button>
-          </div>
-
-          <div className="editor-list">
-            {removePresets.map((preset) => (
-              <div className="editor-row editor-row--preset" key={preset.id}>
-                <div className="editor-row__top">
-                  <div className="preset-editor__title">
-                    <span className="preset-editor__icon">
-                      {getPresetIcon(preset, 'remove')}
-                    </span>
-                    <div>
-                      <strong>{preset.label || 'Preset'}</strong>
-                      <p className="field__help">
-                        {preset.source === 'default' ? 'Default preset' : 'Custom preset'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="preset-editor__actions">
-                    <button
-                      className="inline-button inline-button--tiny"
-                      onClick={() => movePreset('remove', preset.id, 'up')}
-                      type="button"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="inline-button inline-button--tiny"
-                      onClick={() => movePreset('remove', preset.id, 'down')}
-                      type="button"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      className="danger-button danger-button--tiny"
-                      onClick={() => removePreset('remove', preset.id)}
-                      type="button"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                <label className="field">
-                  <input
-                    className="text-input"
-                    onChange={(event) =>
-                      updatePreset('remove', preset.id, 'label', event.target.value)
-                    }
-                    value={preset.label}
-                  />
-                </label>
-
-                <div className="editor-row__fields editor-row__fields--preset">
-                  <input
-                    className="number-input"
-                    min="1"
-                    onChange={(event) =>
-                      updatePreset('remove', preset.id, 'points', event.target.value)
-                    }
-                    type="number"
-                    value={preset.points}
-                  />
-                  <input
-                    className="text-input text-input--icon"
-                    inputMode="text"
-                    maxLength={8}
-                    onChange={(event) =>
-                      updatePreset('remove', preset.id, 'icon', event.target.value)
-                    }
-                    placeholder="💧"
-                    value={preset.icon ?? ''}
-                  />
-                </div>
-
-                <label className="toggle-row">
-                  <input
-                    checked={preset.visibleOnHome}
-                    onChange={(event) =>
-                      updatePreset('remove', preset.id, 'visibleOnHome', event.target.checked)
-                    }
-                    type="checkbox"
-                  />
-                  <span>Show this preset on the home screen</span>
-                </label>
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Lose point presets</h3>
+                <button className="inline-button" onClick={() => addPreset('remove')} type="button">
+                  Add preset
+                </button>
               </div>
-            ))}
-          </div>
-        </section>
 
-        <section className="settings-card">
-          <div className="settings-card__header">
-            <h3>Rewards</h3>
-            <button className="inline-button" onClick={addReward} type="button">
-              Add reward
-            </button>
-          </div>
-
-          <div className="editor-list">
-            {rewardDrafts.map((reward) => (
-              <div
-                className={`editor-row editor-row--reward ${
-                  reward.isClaimed ? 'editor-row--reward-claimed' : ''
-                }`}
-                key={reward.id}
-              >
-                <div className="editor-row__top">
-                  <div className="reward-editor__title">
-                    <span className="reward-editor__sticker">
-                      {reward.isClaimed ? '🏅' : getRewardCategoryIcon(reward.category)}
-                    </span>
-                    <div>
-                      <strong>{reward.title || 'Reward'}</strong>
-                      <p className="field__help">
-                        {reward.isClaimed
-                          ? `Claimed${reward.claimedAt ? ` on ${new Date(reward.claimedAt).toLocaleDateString()}` : ''}`
-                          : reward.category === 'day-out'
-                            ? 'Day out reward'
-                            : 'Not claimed yet'}
-                      </p>
+              <div className="editor-list">
+                {removePresets.map((preset) => (
+                  <div className="editor-row editor-row--preset" key={preset.id}>
+                    <div className="editor-row__top">
+                      <div className="preset-editor__title">
+                        <span className="preset-editor__icon">
+                          {getPresetIcon(preset, 'remove')}
+                        </span>
+                        <div>
+                          <strong>{preset.label || 'Preset'}</strong>
+                          <p className="field__help">
+                            {preset.source === 'default' ? 'Default preset' : 'Custom preset'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="preset-editor__actions">
+                        <button
+                          className="inline-button inline-button--tiny"
+                          onClick={() => movePreset('remove', preset.id, 'up')}
+                          type="button"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className="inline-button inline-button--tiny"
+                          onClick={() => movePreset('remove', preset.id, 'down')}
+                          type="button"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          className="danger-button danger-button--tiny"
+                          onClick={() => removePreset('remove', preset.id)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="preset-editor__actions">
-                    <button
-                      className="inline-button inline-button--tiny"
-                      onClick={() => toggleRewardClaim(reward.id)}
-                      type="button"
-                    >
-                      {reward.isClaimed ? 'Mark unclaimed' : 'Mark claimed'}
-                    </button>
-                    <button
-                      className="danger-button danger-button--tiny"
-                      onClick={() => removeReward(reward.id)}
-                      type="button"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
 
-                <div className="field">
-                  <input
-                    className="text-input"
-                    onChange={(event) =>
-                      updateReward(reward.id, 'title', event.target.value)
-                    }
-                    value={reward.title}
-                  />
-                </div>
+                    <label className="field">
+                      <input
+                        className="text-input"
+                        onChange={(event) =>
+                          updatePreset('remove', preset.id, 'label', event.target.value)
+                        }
+                        value={preset.label}
+                      />
+                    </label>
 
-                <div className="editor-row__fields">
-                  <select
-                    className="text-input"
-                    onChange={(event) =>
-                      updateReward(reward.id, 'category', event.target.value)
-                    }
-                    value={reward.category}
+                    <div className="editor-row__fields editor-row__fields--preset">
+                      <input
+                        className="number-input"
+                        min="1"
+                        onChange={(event) =>
+                          updatePreset('remove', preset.id, 'points', event.target.value)
+                        }
+                        type="number"
+                        value={preset.points}
+                      />
+                      <input
+                        className="text-input text-input--icon"
+                        inputMode="text"
+                        maxLength={8}
+                        onChange={(event) =>
+                          updatePreset('remove', preset.id, 'icon', event.target.value)
+                        }
+                        placeholder="💧"
+                        value={preset.icon ?? ''}
+                      />
+                    </div>
+
+                    <label className="toggle-row">
+                      <input
+                        checked={preset.visibleOnHome}
+                        onChange={(event) =>
+                          updatePreset('remove', preset.id, 'visibleOnHome', event.target.checked)
+                        }
+                        type="checkbox"
+                      />
+                      <span>Show this preset on the home screen</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="settings-card">
+              <div className="settings-card__header">
+                <h3>Rewards</h3>
+                <button className="inline-button" onClick={addReward} type="button">
+                  Add reward
+                </button>
+              </div>
+
+              <div className="editor-list">
+                {rewardDrafts.map((reward) => (
+                  <div
+                    className={`editor-row editor-row--reward ${
+                      reward.isClaimed ? 'editor-row--reward-claimed' : ''
+                    }`}
+                    key={reward.id}
                   >
-                    <option value="sticker">Sticker</option>
-                    <option value="treat">Treat</option>
-                    <option value="home">Home reward</option>
-                    <option value="day-out">Day out</option>
-                  </select>
-                  <input
-                    className="text-input text-input--icon"
-                    maxLength={8}
-                    onChange={(event) =>
-                      updateReward(reward.id, 'icon', event.target.value)
-                    }
-                    placeholder={getRewardCategoryIcon(reward.category)}
-                    value={reward.icon ?? ''}
-                    />
-                </div>
+                    <div className="editor-row__top">
+                      <div className="reward-editor__title">
+                        <span className="reward-editor__sticker">
+                          {reward.isClaimed ? '🏅' : getRewardCategoryIcon(reward.category)}
+                        </span>
+                        <div>
+                          <strong>{reward.title || 'Reward'}</strong>
+                          <p className="field__help">
+                            {reward.isClaimed
+                              ? `Claimed${reward.claimedAt ? ` on ${new Date(reward.claimedAt).toLocaleDateString()}` : ''}`
+                              : reward.category === 'day-out'
+                                ? 'Day out reward'
+                                : 'Not claimed yet'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="preset-editor__actions">
+                        <button
+                          className="inline-button inline-button--tiny"
+                          onClick={() => toggleRewardClaim(reward.id)}
+                          type="button"
+                        >
+                          {reward.isClaimed ? 'Mark unclaimed' : 'Mark claimed'}
+                        </button>
+                        <button
+                          className="danger-button danger-button--tiny"
+                          onClick={() => removeReward(reward.id)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
 
-                <div className="editor-row__fields">
-                  <select
-                    className="text-input"
-                    onChange={(event) =>
-                      updateReward(reward.id, 'redemptionType', event.target.value)
-                    }
-                    value={reward.redemptionType}
-                  >
-                    <option value="spend-points">Spend points to redeem</option>
-                    <option value="unlock-only">Unlock only</option>
-                  </select>
-                  <input
-                    className="number-input"
-                    min="1"
-                    onChange={(event) =>
-                      updateReward(reward.id, 'costPoints', event.target.value)
-                    }
-                    type="number"
-                    value={reward.costPoints}
-                  />
-                </div>
+                    <div className="field">
+                      <input
+                        className="text-input"
+                        onChange={(event) =>
+                          updateReward(reward.id, 'title', event.target.value)
+                        }
+                        value={reward.title}
+                      />
+                    </div>
 
-                <div className="editor-row__fields">
-                  <textarea
-                    className="textarea-input"
-                    onChange={(event) =>
-                      updateReward(reward.id, 'description', event.target.value)
-                    }
-                    value={reward.description}
-                  />
-                  <input
-                    className="number-input"
-                    min="1"
-                    onChange={(event) =>
-                      updateReward(reward.id, 'milestone', event.target.value)
-                    }
-                    type="number"
-                    value={reward.milestone}
-                  />
-                </div>
-
-                {reward.category === 'day-out' ? (
-                  <>
                     <div className="editor-row__fields">
                       <select
                         className="text-input"
-                        onChange={(event) => {
-                          const nextTemplate = event.target.value
-                          updateReward(reward.id, 'venueTemplate', nextTemplate)
-                          if (nextTemplate !== 'Custom place') {
-                            updateReward(reward.id, 'venueName', nextTemplate)
-                          }
-                        }}
-                        value={(reward.venueTemplate ?? reward.venueName) || 'Custom place'}
+                        onChange={(event) =>
+                          updateReward(reward.id, 'category', event.target.value)
+                        }
+                        value={reward.category}
                       >
-                        {DAY_OUT_PLACE_OPTIONS.map((place) => (
-                          <option key={place} value={place}>
-                            {place}
-                          </option>
-                        ))}
+                        <option value="sticker">Sticker</option>
+                        <option value="treat">Treat</option>
+                        <option value="home">Home reward</option>
+                        <option value="day-out">Day out</option>
                       </select>
                       <input
-                        className="text-input"
+                        className="text-input text-input--icon"
+                        maxLength={8}
                         onChange={(event) =>
-                          updateReward(reward.id, 'venueName', event.target.value)
+                          updateReward(reward.id, 'icon', event.target.value)
                         }
-                        placeholder="Venue name"
-                        value={reward.venueName}
+                        placeholder={getRewardCategoryIcon(reward.category)}
+                        value={reward.icon ?? ''}
                       />
                     </div>
-
-                    <label className="field">
-                      <span className="field-label">Booking link</span>
-                      <input
-                        className="text-input"
-                        onChange={(event) =>
-                          updateReward(reward.id, 'bookingUrl', event.target.value)
-                        }
-                        placeholder="https://..."
-                        value={reward.bookingUrl}
-                      />
-                    </label>
 
                     <div className="editor-row__fields">
-                      <input
+                      <select
                         className="text-input"
                         onChange={(event) =>
-                          updateReward(reward.id, 'discountCode', event.target.value)
+                          updateReward(reward.id, 'redemptionType', event.target.value)
                         }
-                        placeholder="Discount code"
-                        value={reward.discountCode}
-                      />
+                        value={reward.redemptionType}
+                      >
+                        <option value="spend-points">Spend points to redeem</option>
+                        <option value="unlock-only">Unlock only</option>
+                      </select>
                       <input
-                        className="text-input"
+                        className="number-input"
+                        min="1"
                         onChange={(event) =>
-                          updateReward(reward.id, 'offerSource', event.target.value)
+                          updateReward(reward.id, 'costPoints', event.target.value)
                         }
-                        placeholder="Offer source"
-                        value={reward.offerSource}
+                        type="number"
+                        value={reward.costPoints}
                       />
                     </div>
 
-                    <label className="field">
-                      <span className="field-label">Eligibility / notes</span>
+                    <div className="editor-row__fields">
                       <textarea
                         className="textarea-input"
                         onChange={(event) =>
-                          updateReward(reward.id, 'eligibilityNotes', event.target.value)
+                          updateReward(reward.id, 'description', event.target.value)
                         }
-                        value={reward.eligibilityNotes}
+                        value={reward.description}
                       />
-                    </label>
-
-                    <label className="field">
-                      <span className="field-label">Last checked date</span>
                       <input
-                        className="text-input"
+                        className="number-input"
+                        min="1"
                         onChange={(event) =>
-                          updateReward(reward.id, 'lastCheckedAt', event.target.value)
+                          updateReward(reward.id, 'milestone', event.target.value)
                         }
-                        placeholder="2026-03-11"
-                        type="date"
-                        value={reward.lastCheckedAt ? reward.lastCheckedAt.slice(0, 10) : ''}
+                        type="number"
+                        value={reward.milestone}
                       />
+                    </div>
+
+                    {reward.category === 'day-out' ? (
+                      <>
+                        <div className="editor-row__fields">
+                          <select
+                            className="text-input"
+                            onChange={(event) => {
+                              const nextTemplate = event.target.value
+                              updateReward(reward.id, 'venueTemplate', nextTemplate)
+                              if (nextTemplate !== 'Custom place') {
+                                updateReward(reward.id, 'venueName', nextTemplate)
+                              }
+                            }}
+                            value={(reward.venueTemplate ?? reward.venueName) || 'Custom place'}
+                          >
+                            {DAY_OUT_PLACE_OPTIONS.map((place) => (
+                              <option key={place} value={place}>
+                                {place}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            className="text-input"
+                            onChange={(event) =>
+                              updateReward(reward.id, 'venueName', event.target.value)
+                            }
+                            placeholder="Venue name"
+                            value={reward.venueName}
+                          />
+                        </div>
+
+                        <label className="field">
+                          <span className="field-label">Booking link</span>
+                          <input
+                            className="text-input"
+                            onChange={(event) =>
+                              updateReward(reward.id, 'bookingUrl', event.target.value)
+                            }
+                            placeholder="https://..."
+                            value={reward.bookingUrl}
+                          />
+                        </label>
+
+                        <div className="editor-row__fields">
+                          <input
+                            className="text-input"
+                            onChange={(event) =>
+                              updateReward(reward.id, 'discountCode', event.target.value)
+                            }
+                            placeholder="Discount code"
+                            value={reward.discountCode}
+                          />
+                          <input
+                            className="text-input"
+                            onChange={(event) =>
+                              updateReward(reward.id, 'offerSource', event.target.value)
+                            }
+                            placeholder="Offer source"
+                            value={reward.offerSource}
+                          />
+                        </div>
+
+                        <label className="field">
+                          <span className="field-label">Eligibility / notes</span>
+                          <textarea
+                            className="textarea-input"
+                            onChange={(event) =>
+                              updateReward(reward.id, 'eligibilityNotes', event.target.value)
+                            }
+                            value={reward.eligibilityNotes}
+                          />
+                        </label>
+
+                        <label className="field">
+                          <span className="field-label">Last checked date</span>
+                          <input
+                            className="text-input"
+                            onChange={(event) =>
+                              updateReward(reward.id, 'lastCheckedAt', event.target.value)
+                            }
+                            placeholder="2026-03-11"
+                            type="date"
+                            value={reward.lastCheckedAt ? reward.lastCheckedAt.slice(0, 10) : ''}
+                          />
+                        </label>
+                      </>
+                    ) : null}
+
+                    <label className="toggle-row">
+                      <input
+                        checked={reward.visibleBeforeUnlock}
+                        onChange={(event) =>
+                          updateRewardToggle(reward.id, 'visibleBeforeUnlock', event.target.checked)
+                        }
+                        type="checkbox"
+                      />
+                      <span>Show reward before it is unlocked</span>
                     </label>
-                  </>
-                ) : null}
 
-                <label className="toggle-row">
-                  <input
-                    checked={reward.visibleBeforeUnlock}
-                    onChange={(event) =>
-                      updateRewardToggle(reward.id, 'visibleBeforeUnlock', event.target.checked)
-                    }
-                    type="checkbox"
-                  />
-                  <span>Show reward before it is unlocked</span>
-                </label>
-
-                <div className="reward-editor__status">
-                  <span className={`chip ${reward.isClaimed ? 'chip--claimed' : 'chip--reward'}`}>
-                    {reward.isClaimed ? 'Claimed reward' : reward.category === 'day-out' ? 'Day out plan' : 'Ready to earn'}
-                  </span>
-                </div>
+                    <div className="reward-editor__status">
+                      <span className={`chip ${reward.isClaimed ? 'chip--claimed' : 'chip--reward'}`}>
+                        {reward.isClaimed ? 'Claimed reward' : reward.category === 'day-out' ? 'Day out plan' : 'Ready to earn'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            </section>
+          </>
+        ) : null}
 
-        <section className="settings-card">
-          <div className="settings-card__header">
-            <h3>Storage tools</h3>
-            <div className="chip">🧹 Careful</div>
-          </div>
+        {section === 'support' ? (
+          <section className="settings-card">
+            <div className="settings-card__header">
+              <h3>Help &amp; support</h3>
+              <div className="chip">💛 Calm support</div>
+            </div>
 
-          <div className="actions-row">
-            <button className="inline-button" onClick={onExportData} type="button">
-              Export backup
-            </button>
-            <button
-              className="inline-button"
-              onClick={() => importInputRef.current?.click()}
-              type="button"
-            >
-              Import backup
-            </button>
-          </div>
+            <div className="info-card info-card--support">
+              <strong>How the app is organised now</strong>
+              <p>
+                Home is for using the app quickly. Account is for profile, point-button management,
+                sync, and parent-only settings.
+              </p>
+            </div>
 
-          <input
-            accept="application/json,.json"
-            className="hidden-input"
-            onChange={handleImportPick}
-            ref={importInputRef}
-            type="file"
-          />
+            <div className="actions-row actions-row--stack">
+              <button
+                className="soft-button soft-button--violet"
+                onClick={() => setIsSupportOpen(true)}
+                type="button"
+              >
+                Open parent support links
+              </button>
+            </div>
 
-          {transferMessage ? <p className="success-text">{transferMessage}</p> : null}
-          {transferError ? <p className="error-text">{transferError}</p> : null}
-
-          <p className="field__help">
-            Imports are checked before they replace the current local data, and you will be asked
-            to confirm before anything is overwritten.
-          </p>
-
-          <div className="actions-row">
-            <button className="danger-button" onClick={onRequestResetPoints} type="button">
-              Reset points
-            </button>
-            <button
-              className="danger-button"
-              disabled={syncSession.mode === 'synced'}
-              onClick={onRequestClearHistory}
-              type="button"
-            >
-              Clear history
-            </button>
-          </div>
-          <p className="field__help">
-            {syncSession.mode === 'synced'
-              ? 'Reset points still adds a shared parent reset event. Shared history stays protected and cannot be cleared from one device.'
-              : 'Destructive actions are protected with one more confirmation step.'}
-          </p>
-        </section>
+            <div className="editor-list">
+              <article className="editor-row">
+                <strong>Version</strong>
+                <p className="field__help">Bestie Points Log {__APP_VERSION__}</p>
+              </article>
+              <article className="editor-row">
+                <strong>Family sync</strong>
+                <p className="field__help">
+                  Shared family mode syncs child profile, presets, rewards, history, and total points.
+                  Reminder, notification, and tone-check preferences stay local to each phone.
+                </p>
+              </article>
+              <article className="editor-row">
+                <strong>Backups</strong>
+                <p className="field__help">
+                  Export and import live in Settings because they change only this device&apos;s local cache.
+                </p>
+              </article>
+            </div>
+          </section>
+        ) : null}
 
         {error && !isWorkingOnSync ? <p className="error-text">{error}</p> : null}
 
-        <button className="save-button save-button--primary" onClick={handleSave} type="button">
-          Save settings
-        </button>
+        {section !== 'support' ? (
+          <button className="save-button save-button--primary" onClick={handleSave} type="button">
+            Save changes
+          </button>
+        ) : null}
       </div>
 
       <ToneCheckPrompt

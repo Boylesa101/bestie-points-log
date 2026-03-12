@@ -34,6 +34,7 @@ import type {
   Profile,
   Reward,
 } from './types/app'
+import { AccountScreen, type AccountSectionTarget } from './screens/AccountScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { RewardsScreen } from './screens/RewardsScreen'
@@ -103,7 +104,7 @@ function App() {
   const [isPointsModalOpen, setIsPointsModalOpen] = useState(false)
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
   const [isParentGateOpen, setIsParentGateOpen] = useState(false)
-  const [parentGateTarget, setParentGateTarget] = useState<'reward-details' | 'settings' | null>(null)
+  const [parentGateTarget, setParentGateTarget] = useState<'account' | 'reward-details' | null>(null)
   const [pointReaction, setPointReaction] = useState<PointReactionState | null>(null)
   const [rewardMessage, setRewardMessage] = useState<string | null>(null)
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
@@ -113,6 +114,7 @@ function App() {
   const [hasDismissedUpdatePrompt, setHasDismissedUpdatePrompt] = useState(false)
   const [isDailyReminderOpen, setIsDailyReminderOpen] = useState(false)
   const [shouldOpenPointsFromReminder, setShouldOpenPointsFromReminder] = useState(false)
+  const [accountSection, setAccountSection] = useState<AccountSectionTarget | 'overview'>('overview')
 
   const hasPointsToday = useMemo(() => {
     const today = getDateKey()
@@ -311,7 +313,8 @@ function App() {
     saveRewards(rewards)
     saveAppSettings(settings)
     setTransferError(null)
-    setScreen('home')
+    setAccountSection('overview')
+    setScreen('settings')
   }
 
   const handleExportData = () => {
@@ -398,14 +401,25 @@ function App() {
     settings.parentLock.isLocked &&
     Boolean(settings.parentLock.pin)
 
-  const handleRequestOpenSettings = () => {
+  const openAccount = (section: AccountSectionTarget | 'overview' = 'overview') => {
     if (shouldRequireParentPin) {
-      setParentGateTarget('settings')
+      setAccountSection(section)
+      setParentGateTarget('account')
       setIsParentGateOpen(true)
       return
     }
 
+    setAccountSection(section)
     setScreen('settings')
+  }
+
+  const handleAccountBack = () => {
+    if (accountSection === 'overview') {
+      setScreen('home')
+      return
+    }
+
+    setAccountSection('overview')
   }
 
   const handleRequestOpenRewardDetails = (reward: Reward) => {
@@ -428,7 +442,7 @@ function App() {
   }
 
   const handleParentGateSuccess = () => {
-    if (parentGateTarget === 'settings') {
+    if (parentGateTarget === 'account') {
       setScreen('settings')
     }
 
@@ -439,7 +453,7 @@ function App() {
 
   const handleEditRewardFromDetails = () => {
     setSelectedReward(null)
-    handleRequestOpenSettings()
+    openAccount('points')
   }
 
   const handleToggleRewardClaimed = (rewardId: string, isClaimed: boolean) => {
@@ -515,10 +529,10 @@ function App() {
           {screen === 'home' ? (
             <HomeScreen
               history={recentEntries}
+              onOpenAccount={() => openAccount('overview')}
               onOpenHistory={() => setScreen('history')}
               onOpenPointsModal={() => setIsPointsModalOpen(true)}
               onOpenRewards={() => setScreen('rewards')}
-              onOpenSettings={handleRequestOpenSettings}
               onPresetTap={handlePresetTap}
               presets={presets}
               profile={profile}
@@ -552,60 +566,75 @@ function App() {
               onBack={() => setScreen('home')}
               onOpenParentDetails={handleRequestOpenRewardDetails}
               onRedeemReward={handleRequestRedeemReward}
-              onOpenSettings={handleRequestOpenSettings}
+              onOpenSettings={() => openAccount('overview')}
               rewards={rewards}
               totalPoints={totalPoints}
             />
           ) : null}
 
           {screen === 'settings' ? (
-            <SettingsScreen
-              isActive={screen === 'settings'}
-              onBack={() => setScreen('home')}
-              onRequestClearHistory={() =>
-                setConfirmState({
-                  action: () => {
-                    clearHistory()
-                    setConfirmState(null)
-                    setScreen('home')
-                  },
-                  confirmLabel: 'Clear history',
-                  description:
-                    'All activity entries will be removed from this device.',
-                  title: 'Clear the activity history?',
-                  tone: 'danger',
-                })
-              }
-              onRequestResetPoints={() =>
-                setConfirmState({
-                  action: () => {
-                    resetPoints()
-                    setConfirmState(null)
-                    setScreen('home')
-                  },
-                  confirmLabel: 'Reset points',
-                  description:
-                    'The current total will go back to zero, but history stays unless you clear it too.',
-                  title: 'Reset Henry’s points?',
-                  tone: 'danger',
-                })
-              }
-              onSave={handleSaveSettings}
-              onExportData={handleExportData}
-              onImportFile={handleImportFile}
-              presets={presets}
-              profile={profile}
-              rewards={rewards}
-              settings={settings}
-              metadata={metadata}
-              syncSession={syncSession}
-              onCreateSyncCode={generateSyncCode}
-              onRevokeLinkedDevice={revokeLinkedDevice}
-              onSyncNow={syncNow}
-              onUpgradeToSync={upgradeToSyncedFamily}
-              transferError={transferError}
-              transferMessage={transferMessage}
-            />
+            <>
+              {accountSection === 'overview' ? (
+                <AccountScreen
+                  onBack={() => setScreen('home')}
+                  onOpenSection={setAccountSection}
+                  presets={presets}
+                  profile={profile}
+                  rewards={rewards}
+                  settings={settings}
+                  syncSession={syncSession}
+                />
+              ) : (
+                <SettingsScreen
+                  isActive={screen === 'settings'}
+                  metadata={metadata}
+                  onBack={handleAccountBack}
+                  onCreateSyncCode={generateSyncCode}
+                  onExportData={handleExportData}
+                  onImportFile={handleImportFile}
+                  onRequestClearHistory={() =>
+                    setConfirmState({
+                      action: () => {
+                        clearHistory()
+                        setConfirmState(null)
+                        setAccountSection('overview')
+                      },
+                      confirmLabel: 'Clear history',
+                      description:
+                        'All activity entries will be removed from this device.',
+                      title: 'Clear the activity history?',
+                      tone: 'danger',
+                    })
+                  }
+                  onRequestResetPoints={() =>
+                    setConfirmState({
+                      action: () => {
+                        resetPoints()
+                        setConfirmState(null)
+                        setAccountSection('overview')
+                      },
+                      confirmLabel: 'Reset points',
+                      description:
+                        'The current total will go back to zero, but history stays unless you clear it too.',
+                      title: `Reset ${profile.childName}’s points?`,
+                      tone: 'danger',
+                    })
+                  }
+                  onRevokeLinkedDevice={revokeLinkedDevice}
+                  onSave={handleSaveSettings}
+                  onSyncNow={syncNow}
+                  onUpgradeToSync={upgradeToSyncedFamily}
+                  presets={presets}
+                  profile={profile}
+                  rewards={rewards}
+                  section={accountSection}
+                  settings={settings}
+                  syncSession={syncSession}
+                  transferError={transferError}
+                  transferMessage={transferMessage}
+                />
+              )}
+            </>
           ) : null}
 
           {isPointsModalOpen ? (

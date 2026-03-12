@@ -75,7 +75,9 @@ export const createFamilyWithSnapshot = async (
   await replaceRewards(env, input.familyId, input.deviceId, input.snapshot.rewards)
 
   for (const event of input.snapshot.history) {
-    await insertPointEvent(env, input.familyId, event)
+    await insertPointEvent(env, input.familyId, event, {
+      deviceId: input.deviceId,
+    })
   }
 
   const pairingCode = await createPairingCode(env, {
@@ -187,7 +189,10 @@ export const pushMutations = async (
 
   for (const mutation of mutations) {
     if (mutation.kind === 'point-event') {
-      const inserted = await insertPointEvent(env, auth.familyId, mutation.payload.event)
+      const inserted = await insertPointEvent(env, auth.familyId, mutation.payload.event, {
+        actorName: mutation.payload.event.actorName || auth.parentName,
+        deviceId: auth.deviceId,
+      })
 
       if (inserted) {
         acceptedMutationIds.push(mutation.id)
@@ -508,7 +513,14 @@ const insertPointEvent = async (
   env: WorkerEnv,
   familyId: string,
   event: HistoryEntry,
+  options?: {
+    actorName?: string
+    deviceId?: string
+  },
 ) => {
+  const canonicalDeviceId = options?.deviceId ?? event.deviceId
+  const canonicalActorName =
+    options?.actorName?.trim() || event.actorName?.trim() || 'Parent'
   const delta = event.type === 'add' ? event.points : -event.points
   const result = await env.DB.prepare(
     `INSERT OR IGNORE INTO point_events (
@@ -518,8 +530,8 @@ const insertPointEvent = async (
     .bind(
       event.id,
       familyId,
-      event.deviceId,
-      event.actorName,
+      canonicalDeviceId,
+      canonicalActorName,
       delta,
       event.reason,
       event.reason,
