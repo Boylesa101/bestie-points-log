@@ -3,12 +3,13 @@ main = "src/index.ts"
 compatibility_date = "2026-03-11"
 
 [vars]
+ALLOWED_ORIGIN = "https://bestie-points-log.pages.dev"
 PAIR_CODE_TTL_MINUTES = "20"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "bestie-points-log"
-database_id = "replace-with-your-d1-database-id"
+database_id = "b58de688-6b87-4a13-9556-0e11d98c11d5"
 
 [[r2_buckets]]
 binding = "PHOTOS"
