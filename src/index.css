@@ -1845,7 +1845,9 @@ img {
   min-height: 100dvh;
   flex: 1 1 auto;
   padding: 0;
-  background: linear-gradient(180deg, #38bdf8 0%, #67e8f9 44%, #c084fc 100%);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.18), transparent 24%),
+    linear-gradient(180deg, #38bdf8 0%, #67e8f9 44%, #7dd3fc 100%);
 }
 
 .splash-screen__panel {
@@ -1882,13 +1884,13 @@ img {
 }
 
 .splash-screen__bubble--three {
-  bottom: 120px;
-  left: 18px;
+  bottom: 126px;
+  left: 26px;
 }
 
 .splash-screen__bubble--four {
-  right: 18px;
-  bottom: 88px;
+  right: 28px;
+  bottom: 120px;
 }
 
 .splash-screen__sparkle {
@@ -1903,7 +1905,7 @@ img {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.28);
   box-shadow: 0 18px 28px rgba(15, 23, 42, 0.18);
-  font-size: 3.6rem;
+  font-size: 3.4rem;
 }
 
 .splash-screen__caption {
@@ -1917,7 +1919,7 @@ img {
   position: relative;
   z-index: 2;
   margin-top: 12px;
-  font-size: clamp(3rem, 14vw, 4.2rem);
+  font-size: clamp(3.3rem, 15vw, 4.5rem);
   text-shadow: 0 8px 16px rgba(15, 23, 42, 0.2);
 }
 

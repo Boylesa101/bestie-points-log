@@ -1560,6 +1560,7 @@ export const SettingsScreen = ({
               <article className="editor-row">
                 <strong>Version</strong>
                 <p className="field__help">Bestie Points Log {__APP_VERSION__}</p>
+                <p className="field__help">Build {__APP_BUILD__}</p>
               </article>
               <article className="editor-row">
                 <strong>Family sync</strong>

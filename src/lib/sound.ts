@@ -6,21 +6,21 @@ const SOUND_FILES: Record<SoundEffect, string> = {
   add: '/sounds/yay.mp3',
   remove: '/sounds/aww.mp3',
   reward: '/sounds/reward-celebration.mp3',
-  splash: '/sounds/laugh.mp3',
+  splash: '/sounds/coin.mp3',
 }
 
 const SOUND_VOLUMES: Record<SoundEffect, number> = {
   add: 0.52,
   remove: 0.46,
   reward: 0.62,
-  splash: 0.38,
+  splash: 0.34,
 }
 
 const SOUND_PLAYBACK_RATES: Record<SoundEffect, number> = {
   add: 1.12,
   remove: 1.04,
   reward: 1,
-  splash: 1,
+  splash: 1.03,
 }
 
 let sharedAudioContext: AudioContext | null = null
@@ -215,27 +215,27 @@ const playNegativeSound = (audioContext: AudioContext) => {
 const playSplashFallback = (audioContext: AudioContext) => {
   const start = audioContext.currentTime + 0.01
   playTone(audioContext, {
-    attack: 0.02,
-    duration: 0.22,
-    frequency: 392,
-    gain: 0.03,
+    attack: 0.004,
+    duration: 0.09,
+    frequency: 1318.51,
+    gain: 0.026,
     start,
+    type: 'square',
+  })
+  playTone(audioContext, {
+    attack: 0.004,
+    duration: 0.12,
+    frequency: 1760,
+    gain: 0.024,
+    start: start + 0.04,
     type: 'triangle',
   })
   playTone(audioContext, {
-    attack: 0.02,
-    duration: 0.26,
-    frequency: 523.25,
-    gain: 0.028,
+    attack: 0.006,
+    duration: 0.18,
+    frequency: 2093,
+    gain: 0.018,
     start: start + 0.08,
-    type: 'sine',
-  })
-  playTone(audioContext, {
-    attack: 0.02,
-    duration: 0.3,
-    frequency: 659.25,
-    gain: 0.026,
-    start: start + 0.16,
     type: 'sine',
   })
 }

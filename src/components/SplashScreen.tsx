@@ -28,18 +28,16 @@ export const SplashScreen = ({
       <section className="splash-screen__panel splash-screen__panel--mock">
         <div className="splash-screen__bubble splash-screen__bubble--one">☁️</div>
         <div className="splash-screen__bubble splash-screen__bubble--two">⭐</div>
-        <div className="splash-screen__bubble splash-screen__bubble--three">🌈</div>
-        <div className="splash-screen__bubble splash-screen__bubble--four">🧸</div>
+        <div className="splash-screen__bubble splash-screen__bubble--three">🧸</div>
+        <div className="splash-screen__bubble splash-screen__bubble--four">✨</div>
         <div className="splash-screen__sparkle" aria-hidden="true">
-          ✨
+          ⭐
         </div>
         <p className="splash-screen__caption">Welcome</p>
         <h1>
           BESTIE
           <br />
           POINTS
-          <br />
-          LOG
         </h1>
         <p>
           Tap in and win stars today.

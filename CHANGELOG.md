@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1 - 2026-03-13
+
+- removed the rainbow from the splash screen and rebalanced the startup layout
+- updated the splash branding to `BESTIE POINTS`
+- changed the startup sound to a coin-style splash sound with a safe fallback if `/public/sounds/coin.mp3` is not present
+- added a visible build hash in `Account -> Help & support` to make phone-version checks easier
+
 ## 1.2.0 - 2026-03-12
 
 - reorganized the parent experience into a clearer `Home` and `Account` split

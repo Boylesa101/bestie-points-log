@@ -1,6 +1,6 @@
 # Bestie Points Log
 
-Current version: `1.2.0`
+Current version: `1.2.1`
 
 Bestie Points Log is a cheerful mobile-first React app for tracking a child’s points. It now supports two modes from one shared codebase:
 
@@ -100,6 +100,19 @@ When family sync is enabled:
 
 The second phone pulls the current shared child profile, photo, points, history, presets, rewards, and linked-device state.
 
+## Splash Screen
+
+- The startup screen now uses the shorter child-facing branding `BESTIE POINTS`
+- The old rainbow decoration has been removed so the splash stays cleaner and more balanced on phone screens
+- Startup sound now looks for:
+
+```text
+public/sounds/coin.mp3
+```
+
+- If that file is missing or autoplay is blocked, the app falls back to a lightweight built-in coin-style chime and never crashes
+- Splash audio still respects the local sound mute setting
+
 ## Home Vs Account
 
 - `Home` stays focused on daily use:
@@ -118,6 +131,8 @@ The second phone pulls the current shared child profile, photo, points, history,
   - `Help & support`
 
 This keeps the child-facing home screen cheerful and uncluttered while making parent tasks easier to find.
+
+`Account -> Help & support` also shows the current app version and build hash so installed phones can be checked against the live deploy more easily.
 
 ## Linked Device Management
 
